@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planeamento Transportes EGEO</title>
+  <style>
+    :root {
+      --primary: #2b7a78;
+      --primary-dark: #205f5c;
+      --bg: #f4f6f8;
+      --card-bg: #ffffff;
+      --shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --basc: #e6f7ff;
+      --cis: #fff5e6;
+      --semi: #f3e6ff;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: #333;
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 15px;
+    }
+    button, select, input[type="date"] {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: white;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover, select:hover, input[type="date"]:hover {
+      background: var(--primary-dark);
+    }
+    select, input[type="date"] {
+      background: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .date-block {
+      margin-bottom: 25px;
+    }
+    .date-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--primary-dark);
+      margin-bottom: 15px;
+      border-left: 5px solid var(--primary);
+      padding-left: 10px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+    }
+    .card {
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+    }
+    .card-header {
+      font-weight: bold;
+      color: var(--primary);
+      font-size: 1.05rem;
+      margin-bottom: 5px;
+    }
+    .card-row {
+      font-size: 0.9rem;
+      color: #444;
+    }
+    .card-row strong {
+      font-weight: bold;
+    }
+    .loading {
+      text-align: center;
+      margin: 40px 0;
+    }
+    .loading img {
+      width: 60px;
+      animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <header>Planeamento Transportes EGEO</header>
+
+  <div class="controls">
+    <button onclick="changeDate(-1)">◀ Anterior</button>
+    <button onclick="today()">Hoje</button>
+    <button onclick="changeDate(1)">Seguinte ▶</button>
+    <button onclick="loadData()">🔄 Atualizar</button>
+    <input type="date" id="datePicker" onchange="pickDate(this.value)">
+    <select id="filterViatura" onchange="applyFilter()">
+      <option value="">Todos os tipos de viatura</option>
+    </select>
+    <select id="filterTransportador" onchange="applyFilter()">
+      <option value="">Todos os transportadores</option>
+    </select>
+  </div>
+
+  <div class="container" id="dataContainer"></div>
+
+  <div class="loading" id="loading" style="display:none;">
+    <img src="Egeo-simbolo-transparência.png" alt="A carregar...">
+    <p>A carregar dados...</p>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxGkqE0K8-xSEPvEaG5_2Q811_myDTuUFM0SetkuNcfcuEppb-c3b0CtO_a5eb2KPPf/exec";
+    let allData = [];
+    let currentDate = new Date();
+
+    function parseDate(dateStr) {
+      if (!dateStr) return null;
+      const parts = dateStr.split("/");
+      if (parts.length !== 3) return new Date(dateStr);
+      const [d,m,y] = parts;
+      return new Date(`${y}-${m}-${d}`);
+    }
+    function formatDate(dateStr) {
+      const d = parseDate(dateStr);
+      if (!d || isNaN(d)) return dateStr;
+      return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "2-digit" });
+    }
+    function formatDateObj(dateObj) {
+      if (!dateObj) return "";
+      return dateObj.toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "2-digit" });
+    }
+    function showLoading(show) {
+      document.getElementById("loading").style.display = show ? "block" : "none";
+    }
+
+    async function loadData() {
+      showLoading(true);
+      try {
+        const res = await fetch(API_URL);
+        allData = await res.json();
+        fillFilters();
+        renderData();
+      } catch (err) {
+        document.getElementById("dataContainer").innerHTML = "<p>Erro a carregar dados.</p>";
+      }
+      showLoading(false);
+    }
+
+    function fillFilters() {
+      const viaturas = [...new Set(allData.map(i => i["Tipo viatura"]).filter(Boolean))];
+      const selV = document.getElementById("filterViatura");
+      selV.innerHTML = '<option value="">Todos os tipos de viatura</option>';
+      viaturas.forEach(v => selV.innerHTML += `<option value="${v}">${v}</option>`);
+
+      const transportadores = [...new Set(allData.map(i => i["Transportador"]).filter(Boolean))];
+      const selT = document.getElementById("filterTransportador");
+      selT.innerHTML = '<option value="">Todos os transportadores</option>';
+      transportadores.forEach(t => selT.innerHTML += `<option value="${t}">${t}</option>`);
+    }
+
+    function renderData() {
+      const container = document.getElementById("dataContainer");
+      container.innerHTML = "";
+
+      const selV = document.getElementById("filterViatura").value;
+      const selT = document.getElementById("filterTransportador").value;
+
+      const todayStr = currentDate.toISOString().split("T")[0];
+      const filtered = allData.filter(row => {
+        const cargaDate = parseDate(row["Data carga"]);
+        if (!cargaDate) return false;
+        const cargaStr = cargaDate.toISOString().split("T")[0];
+        return (
+          cargaStr === todayStr &&
+          (!selV || row["Tipo viatura"] === selV) &&
+          (!selT || row["Transportador"] === selT)
+        );
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = "<p style='text-align:center;'>Nenhum transporte para esta data.</p>";
+        return;
+      }
+
+      // ordenar primeiro por tipo de viatura e depois por destino
+      const orderMap = { "BASCULANTE": 1, "CISTERNA": 2, "SEMI-REBOQUE": 3 };
+      filtered.sort((a, b) => {
+        const va = orderMap[a["Tipo viatura"]] || 99;
+        const vb = orderMap[b["Tipo viatura"]] || 99;
+        if (va !== vb) return va - vb;
+        return (a["Destino"] || "").localeCompare(b["Destino"] || "");
+      });
+
+      const block = document.createElement("div");
+      block.className = "date-block";
+      block.innerHTML = `<div class="date-title">${formatDateObj(currentDate)} — ${filtered.length} transporte(s)</div>`;
+
+      const cards = document.createElement("div");
+      cards.className = "cards";
+
+      filtered.forEach(row => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        // cor por tipo viatura
+        if (row["Tipo viatura"] === "BASCULANTE") card.style.background = "var(--basc)";
+        if (row["Tipo viatura"] === "CISTERNA") card.style.background = "var(--cis)";
+        if (row["Tipo viatura"] === "SEMI-REBOQUE") card.style.background = "var(--semi)";
+
+        card.innerHTML = `
+          <div class="card-header">${row["Cliente"] || ""} — ${row["NEI EGEO"] || ""}</div>
+          <div class="card-row"><strong>${row["Transportador"] || ""}</strong></div>
+          <div class="card-row">${row["Tipo viatura"] || ""}</div>
+          <div class="card-row">${row["Designação"] || ""}</div>
+          <div class="card-row">Descarga: ${formatDate(row["Data Descarga"])}</div>
+          <div class="card-row"><strong>${row["Destino"] || ""}</strong></div>
+        `;
+        cards.appendChild(card);
+      });
+
+      block.appendChild(cards);
+      container.appendChild(block);
+    }
+
+    function changeDate(days) {
+      currentDate.setDate(currentDate.getDate() + days);
+      document.getElementById("datePicker").value = currentDate.toISOString().split("T")[0];
+      renderData();
+    }
+    function today() {
+      currentDate = new Date();
+      document.getElementById("datePicker").value = currentDate.toISOString().split("T")[0];
+      renderData();
+    }
+    function pickDate(val) {
+      if (val) currentDate = new Date(val);
+      renderData();
+    }
+    function applyFilter() {
+      renderData();
+    }
+
+    // Inicializar
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("datePicker").value = currentDate.toISOString().split("T")[0];
+      loadData();
+    });
+  </script>
+</body>
+</html>
