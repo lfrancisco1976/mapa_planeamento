@@ -10,7 +10,7 @@
       --basc: #e6f7ff; --cis: #fff5e6; --semi: #f3e6ff;
     }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
-    header { background: var(--primary); color: white; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    header { background: var(--primary); color: white; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-weight: bold; }
     
     .controls { 
       display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; 
@@ -21,50 +21,50 @@
     button { background: var(--primary); color: white; border: none; font-weight: bold; }
     
     .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
-    .status-bar { margin-bottom: 15px; font-weight: bold; color: var(--primary); }
+    .status-bar { margin-bottom: 15px; font-weight: bold; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 10px; }
     
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
     .card { 
       background: var(--white); border-radius: 8px; padding: 15px; 
       box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; flex-direction: column; 
-      border-left: 10px solid #ccc;
+      border-left: 10px solid #ccc; transition: transform 0.2s;
     }
-    .card-title { font-weight: bold; font-size: 1rem; margin-bottom: 10px; color: #111; line-height: 1.2; }
-    .card-info { font-size: 0.9rem; margin: 3px 0; color: #444; }
+    .card:hover { transform: translateY(-3px); }
+    .card-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 10px; color: #111; line-height: 1.3; min-height: 2.6em; }
+    .card-info { font-size: 0.85rem; margin: 3px 0; color: #444; }
     .label { font-weight: 700; color: #777; width: 100px; display: inline-block; }
 
     #loading { text-align: center; padding: 40px; }
-    .spinner { width: 60px; animation: rotate 2s linear infinite; }
+    .spinner { width: 60px; animation: rotate 2s linear infinite; margin-bottom: 10px; }
     @keyframes rotate { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<header>Logística EGEO - Planeamento</header>
+<header>Planeamento de Transportes EGEO</header>
 
 <div class="controls">
-  <button onclick="changeDate(-1)">◀ Anterior</button>
+  <button onclick="changeDate(-1)">◀ Ant.</button>
   <input type="date" id="datePicker" onchange="render()">
-  <button onclick="changeDate(1)">Seguinte ▶</button>
-  <select id="filterTransp" onchange="render()"><option value="">Todos Transportadores</option></select>
-  <button onclick="fetchData()" style="background:#444">🔄</button>
+  <button onclick="changeDate(1)">Prox. ▶</button>
+  <select id="filterTransp" onchange="render()"><option value="">Transportadores (Todos)</option></select>
+  <button onclick="fetchData()" style="background:#444">🔄 Atualizar</button>
 </div>
 
 <div class="container">
   <div id="loading">
-    <img src="logo.png" class="spinner" alt="Loading...">
-    <p>A carregar dados do Sheets...</p>
+    <img src="logo.png" class="spinner" alt="Carregando...">
+    <p>A sincronizar com a folha de cálculo...</p>
   </div>
   <div id="statusBar" class="status-bar"></div>
   <div id="output" class="grid"></div>
 </div>
 
 <script>
-  // ATUALIZA COM O TEU URL /EXEC
-  const API_URL = "https://script.google.com/macros/s/AKfycbxgCwosIROsUEiNBH6rzzaHVn8WHmthgeA9lIFgiquHOKXnDpsUwysumSrz45oYlzOy/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbydj-7yUQ9j7b4SMOAawbZU8GKLb_J4gau6ZAzdYZr6IRP_laZN5-HjBCYR_1y1YRk/exec"; // SUBSTITUI PELO TEU NOVO URL /EXEC
   let rawData = [];
 
-  // Inicializa com a data de hoje para o seletor
+  // Define data de hoje no calendário
   document.getElementById('datePicker').valueAsDate = new Date();
 
   async function fetchData() {
@@ -73,10 +73,10 @@
       const resp = await fetch(API_URL);
       rawData = await resp.json();
       
-      // Preencher filtro de transportadores
-      const transps = [...new Set(rawData.map(row => row["transportador"]))].filter(Boolean).sort();
+      // Filtro de transportadores (usando "Transportador" com T maiúsculo)
+      const transps = [...new Set(rawData.map(row => row["Transportador"] || row["transportador"]))].filter(Boolean).sort();
       const select = document.getElementById('filterTransp');
-      select.innerHTML = '<option value="">Todos Transportadores</option>';
+      select.innerHTML = '<option value="">Transportadores (Todos)</option>';
       transps.forEach(t => select.innerHTML += `<option value="${t}">${t}</option>`);
       
       render();
@@ -88,8 +88,7 @@
 
   function normalize(dateStr) {
     if (!dateStr) return "";
-    // Se vier DD/MM/YYYY HH:MM:SS, pega só a parte da data
-    const part = dateStr.split(' ')[0];
+    const part = dateStr.toString().split(' ')[0];
     if (part.includes('/')) {
       const [d, m, y] = part.split('/');
       return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
@@ -100,21 +99,24 @@
   function render() {
     const container = document.getElementById('output');
     const targetDate = document.getElementById('datePicker').value;
-    const transp = document.getElementById('filterTransp').value;
+    const transpFilter = document.getElementById('filterTransp').value;
     container.innerHTML = "";
 
     const filtered = rawData.filter(row => {
-      // Como o script agora coloca tudo em minúsculas, usamos "data carga"
-      const rowDate = normalize(row["data carga"]);
+      const dataValue = row["Data carga"] || row["Data Carga"] || row["data carga"];
+      const rowDate = normalize(dataValue);
       const matchDate = rowDate === targetDate;
-      const matchTransp = !transp || row["transportador"] === transp;
+      
+      const tValue = row["Transportador"] || row["transportador"];
+      const matchTransp = !transpFilter || tValue === transpFilter;
+      
       return matchDate && matchTransp;
     });
 
-    document.getElementById('statusBar').innerText = `${filtered.length} serviços encontrados.`;
+    document.getElementById('statusBar').innerText = `${filtered.length} transporte(s) para o dia selecionado.`;
 
     if (filtered.length === 0) {
-      container.innerHTML = "<p>Sem dados para este dia.</p>";
+      container.innerHTML = "<p style='grid-column: 1/-1; text-align:center; padding: 20px;'>Nenhum registo encontrado.</p>";
       return;
     }
 
@@ -122,23 +124,22 @@
       const card = document.createElement('div');
       card.className = 'card';
       
-      // Cores por tipo
-      const tipo = (row["tipo viatura"] || "").toUpperCase();
+      const tipo = (row["Tipo viatura"] || row["tipo viatura"] || "").toUpperCase();
       if (tipo.includes("BASC")) card.style.borderColor = "#2b7a78", card.style.background = "var(--basc)";
       else if (tipo.includes("CIST")) card.style.borderColor = "#d9a044", card.style.background = "var(--cis)";
       else if (tipo.includes("SEMI")) card.style.borderColor = "#8e44ad", card.style.background = "var(--semi)";
 
       card.innerHTML = `
-        <div class="card-title">${row["cliente"] || 'N/A'}</div>
-        <div class="card-info"><span class="label">NEI:</span>${row["nei egeo"] || '-'}</div>
-        <div class="card-info"><span class="label">Transport.:</span><strong>${row["transportador"] || '-'}</strong></div>
-        <div class="card-info"><span class="label">Viatura:</span>${row["tipo viatura"] || '-'}</div>
-        <div class="card-info"><span class="label">Designação:</span><em>${row["designação"] || '-'}</em></div>
+        <div class="card-title">${row["Cliente"] || row["cliente"] || 'N/A'}</div>
+        <div class="card-info"><span class="label">NEI EGEO:</span>${row["NEI EGEO"] || row["nei egeo"] || '-'}</div>
+        <div class="card-info"><span class="label">Transport.:</span><strong>${row["Transportador"] || row["transportador"] || '-'}</strong></div>
+        <div class="card-info"><span class="label">Viatura:</span>${row["Tipo viatura"] || row["tipo viatura"] || '-'}</div>
+        <div class="card-info"><span class="label">Designação:</span><em>${row["Designação"] || row["designação"] || '-'}</em></div>
         <div class="card-info" style="margin-top:8px; font-weight:bold; color:var(--primary)">
-          <span class="label">Destino:</span>${row["destino"] || '-'}
+          <span class="label">Destino:</span>${row["Destino"] || row["destino"] || '-'}
         </div>
         <div style="font-size:0.75rem; color:#888; margin-top:10px; border-top:1px solid #eee; padding-top:5px;">
-          Data Descarga: ${row["data descarga"] || '-'}
+          Data Descarga: ${row["Data Descarga"] || row["data descarga"] || '-'}
         </div>
       `;
       container.appendChild(card);
