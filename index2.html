@@ -10,9 +10,9 @@
       --basc: #e6f7ff; --cis: #fff5e6; --semi: #f3e6ff;
     }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; color: #333; }
-    header { background: var(--primary); color: white; padding: 1.5rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    header { background: var(--primary); color: white; padding: 1.5rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); font-weight: bold; font-size: 1.4rem; }
     
-    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 20px; background: var(--white); border-bottom: 1px solid #ddd; sticky; top: 0; z-index: 100; }
+    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 20px; background: var(--white); border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
     button, select, input { padding: 10px 15px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; font-size: 14px; }
     button { background: var(--primary); color: white; border: none; font-weight: bold; }
     button:hover { opacity: 0.9; }
@@ -20,15 +20,15 @@
     .container { max-width: 1100px; margin: 20px auto; padding: 0 15px; }
     .status-bar { margin-bottom: 15px; font-weight: bold; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 10px; }
     
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-    .card { background: var(--white); border-radius: 10px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eee; transition: 0.2s; }
-    .card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
-    .card-title { font-weight: bold; font-size: 1.1rem; color: var(--primary); margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
-    .card-row { margin: 4px 0; font-size: 0.9rem; }
-    .label { font-weight: 600; color: #666; width: 100px; display: inline-block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .card { background: var(--white); border-radius: 10px; padding: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eee; display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden; }
+    .card-title { font-weight: bold; font-size: 0.95rem; color: #111; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; margin-bottom: 5px; min-height: 2.5em; line-height: 1.3; }
+    .card-row { font-size: 0.85rem; display: flex; align-items: flex-start; margin-bottom: 2px; }
+    .label { font-weight: 700; color: #666; width: 100px; flex-shrink: 0; }
+    .value { color: #333; flex-grow: 1; }
 
     #loading { text-align: center; padding: 50px; }
-    .spinner { width: 80px; animation: spin 2s linear infinite; }
+    .spinner { width: 60px; animation: spin 2s linear infinite; margin-bottom: 10px; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
@@ -56,11 +56,10 @@
 </div>
 
 <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbzwc-fODv4Cz0C5nuztkqMli26B4fN0F-wrpEXwYFIQDxHPy38Jfwj63uF9udz5WyvX/exec"; 
+  const API_URL = "https://script.google.com/macros/s/AKfycbxgCwosIROsUEiNBH6rzzaHVn8WHmthgeA9lIFgiquHOKXnDpsUwysumSrz45oYlzOy/exec"; 
   let rawData = [];
   let viewDate = new Date();
 
-  // 1. CARREGAR DADOS
   async function fetchData() {
     document.getElementById('loading').style.display = 'block';
     document.getElementById('output').innerHTML = '';
@@ -70,27 +69,27 @@
       populateFilters();
       render();
     } catch (e) {
-      document.getElementById('output').innerHTML = "Erro ao carregar dados da API.";
+      document.getElementById('output').innerHTML = "Erro ao carregar dados. Verifique a API.";
     }
     document.getElementById('loading').style.display = 'none';
   }
 
-  // 2. NORMALIZAR DATAS (Evita erro de fuso horário)
   function formatDateKey(dateObj) {
     const d = new Date(dateObj);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  // Função robusta para extrair a data independentemente do formato
   function parseSheetDate(str) {
     if (!str) return "";
-    if (str.includes('/')) {
-      const [d, m, y] = str.split('/');
+    const cleanStr = str.toString().split(' ')[0]; // Remove o "00:00:00"
+    if (cleanStr.includes('/')) {
+      const [d, m, y] = cleanStr.split('/');
       return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
     }
-    return str; // Caso já venha YYYY-MM-DD
+    return cleanStr;
   }
 
-  // 3. FILTROS DINÂMICOS
   function populateFilters() {
     const list = [...new Set(rawData.map(item => item["Transportador"]))].filter(Boolean).sort();
     const select = document.getElementById('filterTransp');
@@ -98,7 +97,6 @@
     list.forEach(t => select.innerHTML += `<option value="${t}">${t}</option>`);
   }
 
-  // 4. RENDERIZAR
   function render() {
     const container = document.getElementById('output');
     const selectedTransp = document.getElementById('filterTransp').value;
@@ -108,14 +106,19 @@
     container.innerHTML = '';
 
     const filtered = rawData.filter(row => {
-      const rowDate = parseSheetDate(row["Data Carga"]);
-      return rowDate === targetDate && (!selectedTransp || row["Transportador"] === selectedTransp);
+      // PROCURA POR "Data carga" OU "Data Carga" (ignora maiúsculas)
+      const dataValue = row["Data carga"] || row["Data Carga"];
+      const rowDate = parseSheetDate(dataValue);
+      
+      const matchDate = rowDate === targetDate;
+      const matchTransp = !selectedTransp || row["Transportador"] === selectedTransp;
+      return matchDate && matchTransp;
     });
 
-    document.getElementById('statusBar').innerText = `${filtered.length} serviços encontrados para ${targetDate}`;
+    document.getElementById('statusBar').innerText = `${filtered.length} serviço(s) para ${targetDate}`;
 
     if (filtered.length === 0) {
-      container.innerHTML = '<p>Nenhum registo para esta data.</p>';
+      container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">Sem agendamentos.</div>';
       return;
     }
 
@@ -123,22 +126,20 @@
       const card = document.createElement('div');
       card.className = 'card';
       
-      // Cores por tipo
       const tipo = (row["Tipo viatura"] || "").toUpperCase();
-      if (tipo.includes("BASC")) card.style.background = "var(--basc)";
-      else if (tipo.includes("CIST")) card.style.background = "var(--cis)";
-      else if (tipo.includes("SEMI")) card.style.background = "var(--semi)";
+      if (tipo.includes("BASC")) card.style.borderTop = "6px solid #2b7a78", card.style.background = "var(--basc)";
+      else if (tipo.includes("CIST")) card.style.borderTop = "6px solid #d9a044", card.style.background = "var(--cis)";
+      else if (tipo.includes("SEMI")) card.style.borderTop = "6px solid #8e44ad", card.style.background = "var(--semi)";
 
+      // Usar || "" em todos os campos para evitar o texto "undefined"
       card.innerHTML = `
-        <div class="card-title">${row["Cliente"] || 'S/ Cliente'}</div>
-        <div class="card-row"><span class="label">NEI EGEO:</span>${row["NEI EGEO"] || '-'}</div>
-        <div class="card-row"><span class="label">Transp.:</span><strong>${row["Transportador"] || '-'}</strong></div>
-        <div class="card-row"><span class="label">Viatura:</span>${row["Tipo viatura"] || '-'}</div>
-        <div class="card-row"><span class="label">Designação:</span><em>${row["Designação"] || '-'}</em></div>
-        <div class="card-row" style="margin-top:10px; color:var(--primary)">
-          <span class="label">Destino:</span><strong>${row["Destino"] || '-'}</strong>
-        </div>
-        <div class="card-row" style="font-size:0.75rem; color:#888; margin-top:5px;">
+        <div class="card-title">${row["Cliente"] || 'N/A'}</div>
+        <div class="card-row"><span class="label">NEI EGEO:</span><span class="value">${row["NEI EGEO"] || '-'}</span></div>
+        <div class="card-row"><span class="label">Transp.:</span><span class="value"><strong>${row["Transportador"] || '-'}</strong></span></div>
+        <div class="card-row"><span class="label">Viatura:</span><span class="value">${row["Tipo viatura"] || '-'}</span></div>
+        <div class="card-row"><span class="label">Designação:</span><span class="value">${row["Designação"] || '-'}</span></div>
+        <div class="card-row" style="margin-top:8px;"><span class="label">Destino:</span><span class="value" style="color:var(--primary); font-weight:bold;">${row["Destino"] || '-'}</span></div>
+        <div class="card-row" style="font-size:0.75rem; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 8px; margin-top: 5px; color: #888;">
           Descarga: ${row["Data Descarga"] || '-'}
         </div>
       `;
@@ -146,14 +147,11 @@
     });
   }
 
-  // 5. NAVEGAÇÃO
   function changeDate(days) { viewDate.setDate(viewDate.getDate() + days); render(); }
   function setToday() { viewDate = new Date(); render(); }
-  function pickDate(val) { if(val) { viewDate = new Date(val); render(); } }
+  function pickDate(val) { if(val) { const [y,m,d] = val.split("-"); viewDate = new Date(y, m-1, d); render(); } }
 
-  // Iniciar
   document.addEventListener('DOMContentLoaded', fetchData);
 </script>
-
 </body>
 </html>
