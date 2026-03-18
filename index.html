@@ -1,125 +1,78 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Planeamento Transportes EGEO</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planeamento Transportes EGEO</title>
 
-  <style>
-    :root {
-      --primary: #2b7a78;
-      --primary-dark: #205f5c;
-      --bg: #f4f6f8;
-      --card-bg: #ffffff;
-      --shadow: 0 4px 12px rgba(0,0,0,0.1);
-      --basc: #e6f7ff;
-      --cis: #fff5e6;
-      --semi: #f3e6ff;
-    }
+<style>
+:root {
+  --primary: #2b7a78;
+  --primary-dark: #205f5c;
+  --bg: #f4f6f8;
+  --shadow: 0 4px 12px rgba(0,0,0,0.1);
+  --basc: #e6f7ff;
+  --cis: #fff5e6;
+  --semi: #f3e6ff;
+}
 
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: #333;
-    }
+body { margin:0; font-family:Segoe UI; background:var(--bg); }
 
-    header {
-      background: var(--primary);
-      color: white;
-      padding: 20px;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: 600;
-      box-shadow: var(--shadow);
-    }
+header {
+  background:var(--primary);
+  color:#fff;
+  padding:20px;
+  text-align:center;
+  font-size:1.5rem;
+}
 
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin: 15px;
-    }
+.controls {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin:15px;
+}
 
-    button, select, input[type="date"] {
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      cursor: pointer;
-    }
+button, select, input {
+  padding:10px;
+  border-radius:8px;
+  font-size:0.9rem;
+}
 
-    button {
-      border: none;
-      background: var(--primary);
-      color: white;
-    }
+button {
+  background:var(--primary);
+  color:white;
+  border:none;
+  cursor:pointer;
+}
 
-    button:hover {
-      background: var(--primary-dark);
-    }
+.container { max-width:1200px; margin:auto; padding:20px; }
 
-    select, input[type="date"] {
-      background: #fff;
-      color: #333;
-      border: 1px solid #ccc;
-    }
+.cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:15px;
+}
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+.card {
+  border-radius:12px;
+  padding:15px;
+  box-shadow:var(--shadow);
+}
 
-    .date-block {
-      margin-bottom: 25px;
-    }
+.loading { text-align:center; margin:40px; }
 
-    .date-title {
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: var(--primary-dark);
-      margin-bottom: 15px;
-      border-left: 5px solid var(--primary);
-      padding-left: 10px;
-    }
+.loading img {
+  width:60px;
+  animation:spin 2s linear infinite;
+}
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 15px;
-    }
-
-    .card {
-      border-radius: 12px;
-      padding: 15px;
-      box-shadow: var(--shadow);
-    }
-
-    .card-header {
-      font-weight: bold;
-      color: var(--primary);
-    }
-
-    .card-row {
-      font-size: 0.9rem;
-    }
-
-    .loading {
-      text-align: center;
-      margin: 40px 0;
-    }
-
-    .loading img {
-      width: 60px;
-      animation: spin 2s linear infinite;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-  </style>
+@keyframes spin {
+  from {transform:rotate(0deg);}
+  to {transform:rotate(360deg);}
+}
+</style>
 </head>
 
 <body>
@@ -127,19 +80,19 @@
 <header>Planeamento Transportes EGEO</header>
 
 <div class="controls">
-  <button onclick="changeDate(-1)">◀ Anterior</button>
+  <button onclick="changeDate(-1)">◀</button>
   <button onclick="today()">Hoje</button>
-  <button onclick="changeDate(1)">Seguinte ▶</button>
-  <button onclick="loadData()">🔄 Atualizar</button>
+  <button onclick="changeDate(1)">▶</button>
+  <button onclick="loadData()">🔄</button>
 
   <input type="date" id="datePicker" onchange="pickDate(this.value)">
 
-  <select id="filterViatura" onchange="applyFilter()">
-    <option value="">Todos os tipos de viatura</option>
+  <select id="filterViatura" onchange="renderData()">
+    <option value="">Todas viaturas</option>
   </select>
 
-  <select id="filterTransportador" onchange="applyFilter()">
-    <option value="">Todos os transportadores</option>
+  <select id="filterTransportador" onchange="renderData()">
+    <option value="">Todos transportadores</option>
   </select>
 </div>
 
@@ -147,7 +100,7 @@
 
 <div class="loading" id="loading" style="display:none;">
   <img src="logo.png">
-  <p>A carregar dados...</p>
+  <p>A carregar...</p>
 </div>
 
 <script>
@@ -156,39 +109,33 @@ const API_URL = "https://script.google.com/macros/s/AKfycbydj-7yUQ9j7b4SMOAawbZU
 let allData = [];
 let currentDate = new Date();
 
-/* ✅ DATA LOCAL (CORRETO) */
-function parseDate(dateStr) {
-  if (!dateStr) return null;
-
-  const parts = dateStr.split("/");
-  if (parts.length === 3) {
-    const [d, m, y] = parts;
-    return new Date(y, m - 1, d);
-  }
-
-  return new Date(dateStr);
+/* ✅ normalizar texto */
+function norm(txt) {
+  return (txt || "").toString().trim().toLowerCase();
 }
 
-/* ✅ FORMATAR PARA YYYY-MM-DD LOCAL */
+/* ✅ parse data LOCAL */
+function parseDate(str) {
+  if (!str) return null;
+
+  if (typeof str === "string" && str.includes("/")) {
+    const [d,m,y] = str.split("/");
+    return new Date(y, m-1, d);
+  }
+
+  return new Date(str);
+}
+
+/* ✅ YYYY-MM-DD local */
 function toLocalDateString(date) {
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
+  const m = String(date.getMonth()+1).padStart(2,"0");
+  const d = String(date.getDate()).padStart(2,"0");
   return `${y}-${m}-${d}`;
 }
 
-function formatDate(dateStr) {
-  const d = parseDate(dateStr);
-  if (!d) return "";
-  return d.toLocaleDateString("pt-PT");
-}
-
-function formatDateObj(dateObj) {
-  return dateObj.toLocaleDateString("pt-PT");
-}
-
-function showLoading(show) {
-  document.getElementById("loading").style.display = show ? "block" : "none";
+function showLoading(s) {
+  document.getElementById("loading").style.display = s ? "block":"none";
 }
 
 async function loadData() {
@@ -196,106 +143,106 @@ async function loadData() {
 
   try {
     const res = await fetch(API_URL);
-    allData = await res.json();
+    let raw = await res.json();
+
+    /* 🔥 NORMALIZA COLUNAS */
+    allData = raw.map(row => {
+      let r = {};
+      Object.keys(row).forEach(k => {
+        r[norm(k)] = row[k];
+      });
+      return r;
+    });
+
+    console.log("DADOS:", allData[0]);
 
     fillFilters();
     renderData();
 
-  } catch (err) {
-    document.getElementById("dataContainer").innerHTML = "Erro a carregar dados.";
+  } catch(e) {
+    document.getElementById("dataContainer").innerHTML = "Erro ao carregar";
   }
 
   showLoading(false);
 }
 
 function fillFilters() {
-  const viaturas = [...new Set(allData.map(i => i["Tipo viatura"]).filter(Boolean))];
-  const selV = document.getElementById("filterViatura");
+  const viaturas = [...new Set(allData.map(i => norm(i["tipo viatura"])).filter(Boolean))];
+  const tps = [...new Set(allData.map(i => norm(i["transportador"])).filter(Boolean))];
 
-  selV.innerHTML = '<option value="">Todos</option>';
-  viaturas.forEach(v => selV.innerHTML += `<option value="${v}">${v}</option>`);
+  const vSel = document.getElementById("filterViatura");
+  const tSel = document.getElementById("filterTransportador");
 
-  const transportadores = [...new Set(allData.map(i => i["Transportador"]).filter(Boolean))];
-  const selT = document.getElementById("filterTransportador");
+  vSel.innerHTML = '<option value="">Todas</option>';
+  tSel.innerHTML = '<option value="">Todos</option>';
 
-  selT.innerHTML = '<option value="">Todos</option>';
-  transportadores.forEach(t => selT.innerHTML += `<option value="${t}">${t}</option>`);
+  viaturas.forEach(v => vSel.innerHTML += `<option value="${v}">${v}</option>`);
+  tps.forEach(t => tSel.innerHTML += `<option value="${t}">${t}</option>`);
 }
 
 function renderData() {
+
   const container = document.getElementById("dataContainer");
   container.innerHTML = "";
 
-  const selV = document.getElementById("filterViatura").value;
-  const selT = document.getElementById("filterTransportador").value;
+  const selV = norm(document.getElementById("filterViatura").value);
+  const selT = norm(document.getElementById("filterTransportador").value);
 
   const todayStr = toLocalDateString(currentDate);
 
   const filtered = allData.filter(row => {
-    const cargaDate = parseDate(row["Data carga"]);
-    if (!cargaDate) return false;
 
-    const cargaStr = toLocalDateString(cargaDate);
+    const carga = row["data carga"];
+    const d = parseDate(carga);
+
+    if (!d) return false;
+
+    const dStr = toLocalDateString(d);
 
     return (
-      cargaStr === todayStr &&
-      (!selV || row["Tipo viatura"] === selV) &&
-      (!selT || row["Transportador"] === selT)
+      dStr === todayStr &&
+      (!selV || norm(row["tipo viatura"]) === selV) &&
+      (!selT || norm(row["transportador"]) === selT)
     );
   });
 
-  if (filtered.length === 0) {
-    container.innerHTML = "<p style='text-align:center;'>Nenhum transporte para esta data.</p>";
+  console.log("DATA:", todayStr, "RESULTADOS:", filtered.length);
+
+  if (!filtered.length) {
+    container.innerHTML = "<p style='text-align:center'>Nenhum transporte para esta data</p>";
     return;
   }
-
-  const orderMap = { "BASCULANTE": 1, "CISTERNA": 2, "SEMI-REBOQUE": 3 };
-
-  filtered.sort((a, b) => {
-    const va = orderMap[a["Tipo viatura"]] || 99;
-    const vb = orderMap[b["Tipo viatura"]] || 99;
-    if (va !== vb) return va - vb;
-    return (a["Destino"] || "").localeCompare(b["Destino"] || "");
-  });
-
-  const block = document.createElement("div");
-  block.className = "date-block";
-
-  block.innerHTML = `
-    <div class="date-title">
-      ${formatDateObj(currentDate)} — ${filtered.length} transporte(s)
-    </div>
-  `;
 
   const cards = document.createElement("div");
   cards.className = "cards";
 
-  filtered.forEach(row => {
-    const card = document.createElement("div");
-    card.className = "card";
+  filtered.forEach(r => {
+    const c = document.createElement("div");
+    c.className = "card";
 
-    if (row["Tipo viatura"] === "BASCULANTE") card.style.background = "var(--basc)";
-    if (row["Tipo viatura"] === "CISTERNA") card.style.background = "var(--cis)";
-    if (row["Tipo viatura"] === "SEMI-REBOQUE") card.style.background = "var(--semi)";
+    const tipo = norm(r["tipo viatura"]);
 
-    card.innerHTML = `
-      <div class="card-header">${row["Cliente"] || ""}</div>
-      <div class="card-row"><strong>${row["Transportador"] || ""}</strong></div>
-      <div class="card-row">${row["Tipo viatura"] || ""}</div>
-      <div class="card-row">${row["Designação"] || ""}</div>
-      <div class="card-row">Descarga: ${formatDate(row["Data Descarga"])}</div>
-      <div class="card-row"><strong>${row["Destino"] || ""}</strong></div>
+    if (tipo === "basculante") c.style.background = "var(--basc)";
+    if (tipo === "cisterna") c.style.background = "var(--cis)";
+    if (tipo === "semi-reboque") c.style.background = "var(--semi)";
+
+    c.innerHTML = `
+      <b>${r["cliente"] || ""}</b><br>
+      ${r["transportador"] || ""}<br>
+      ${r["tipo viatura"] || ""}<br>
+      ${r["designação"] || ""}<br>
+      Descarga: ${r["data descarga"] || ""}<br>
+      <b>${r["destino"] || ""}</b>
     `;
 
-    cards.appendChild(card);
+    cards.appendChild(c);
   });
 
-  block.appendChild(cards);
-  container.appendChild(block);
+  container.appendChild(cards);
 }
 
-function changeDate(days) {
-  currentDate.setDate(currentDate.getDate() + days);
+function changeDate(d) {
+  currentDate.setDate(currentDate.getDate()+d);
   document.getElementById("datePicker").value = toLocalDateString(currentDate);
   renderData();
 }
@@ -306,15 +253,10 @@ function today() {
   renderData();
 }
 
-function pickDate(val) {
-  if (val) {
-    const [y, m, d] = val.split("-");
-    currentDate = new Date(y, m - 1, d);
-  }
-  renderData();
-}
-
-function applyFilter() {
+function pickDate(v) {
+  if (!v) return;
+  const [y,m,d] = v.split("-");
+  currentDate = new Date(y, m-1, d);
   renderData();
 }
 
