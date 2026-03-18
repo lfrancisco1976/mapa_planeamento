@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planeamento Transportes EGEO</title>
+<title>Planeamento Transportes</title>
 
 <style>
 :root {
@@ -14,23 +14,36 @@
   --cis:#fff5e6;
   --semi:#f3e6ff;
 }
+
 body {margin:0;font-family:Segoe UI;background:var(--bg);}
 header {background:var(--primary);color:#fff;padding:20px;text-align:center;}
 
 .controls {
-  display:flex;flex-wrap:wrap;justify-content:center;
-  gap:10px;margin:15px;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin:15px;
 }
 
 button,select,input {
-  padding:10px;border-radius:8px;font-size:0.9rem;
+  padding:10px;
+  border-radius:8px;
+  font-size:0.9rem;
 }
 
 button {
-  background:var(--primary);color:#fff;border:none;cursor:pointer;
+  background:var(--primary);
+  color:white;
+  border:none;
+  cursor:pointer;
 }
 
-.container {max-width:1200px;margin:auto;padding:20px;}
+.container {
+  max-width:1200px;
+  margin:auto;
+  padding:20px;
+}
 
 .cards {
   display:grid;
@@ -44,19 +57,16 @@ button {
   box-shadow:var(--shadow);
 }
 
-.loading {text-align:center;margin:40px;}
-.loading img {width:60px;animation:spin 2s linear infinite;}
-
-@keyframes spin {
-  from{transform:rotate(0)}
-  to{transform:rotate(360deg)}
+.loading {
+  text-align:center;
+  margin:40px;
 }
 </style>
 </head>
 
 <body>
 
-<header>Planeamento Transportes EGEO</header>
+<header>Planeamento Transportes</header>
 
 <div class="controls">
   <button onclick="changeDate(-1)">◀</button>
@@ -78,24 +88,31 @@ button {
 <div class="container" id="dataContainer"></div>
 
 <div class="loading" id="loading" style="display:none;">
-  <img src="logo.png">
   <p>A carregar...</p>
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbydj-7yUQ9j7b4SMOAawbZU8GKLb_J4gau6ZAzdYZr6IRP_laZN5-HjBCYR_1y1YRk/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzj65xTfjr0VF8PawiIMY6OfTl-OSPM_SXZGAH-2WroDYsSeQNNNFxa41MonL5g_93h/exec";
 
 let allData = [];
 let currentDate = new Date();
 
-/* NORMALIZAR TEXTO */
-function norm(t){ return (t||"").toString().trim().toLowerCase(); }
+/* 🔥 normalizar chave */
+function cleanKey(k){
+  return (k||"")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .replace(/\s+/g," ")
+    .trim();
+}
 
-/* 🔥 PARSE DATA (COM HORA CORRIGIDA) */
+/* 🔥 parse data (remove hora) */
 function parseDate(str){
   if(!str) return null;
 
-  str = str.toString().trim().split(" ")[0]; // remove hora
+  str = str.toString().split(" ")[0];
 
   if(str.includes("/")){
     const [d,m,y] = str.split("/");
@@ -105,11 +122,15 @@ function parseDate(str){
   return new Date(str);
 }
 
-/* DATA LOCAL */
+/* data local */
 function toLocalDateString(d){
   return d.getFullYear()+"-"+
-  String(d.getMonth()+1).padStart(2,"0")+"-"+
-  String(d.getDate()).padStart(2,"0");
+    String(d.getMonth()+1).padStart(2,"0")+"-"+
+    String(d.getDate()).padStart(2,"0");
+}
+
+function norm(v){
+  return (v||"").toString().toLowerCase().trim();
 }
 
 function showLoading(s){
@@ -121,32 +142,32 @@ async function loadData(){
 
   try{
     const res = await fetch(API_URL);
-    let raw = await res.json();
+    const raw = await res.json();
 
-    /* NORMALIZA COLUNAS */
+    /* normalizar dados */
     allData = raw.map(row=>{
       let r={};
       Object.keys(row).forEach(k=>{
-        r[norm(k)] = row[k];
+        r[cleanKey(k)] = row[k];
       });
       return r;
     });
 
-    console.log("DADOS:", allData[0]);
+    console.log("EXEMPLO:", allData[0]);
 
     fillFilters();
     renderData();
 
   }catch(e){
-    document.getElementById("dataContainer").innerHTML="Erro ao carregar";
+    document.getElementById("dataContainer").innerHTML="Erro ao carregar dados";
   }
 
   showLoading(false);
 }
 
 function fillFilters(){
-  const v = [...new Set(allData.map(i=>norm(i["tipo viatura"])).filter(Boolean))];
-  const t = [...new Set(allData.map(i=>norm(i["transportador"])).filter(Boolean))];
+  const viaturas = [...new Set(allData.map(i=>norm(i["tipo viatura"])).filter(Boolean))];
+  const transps = [...new Set(allData.map(i=>norm(i["transportador"])).filter(Boolean))];
 
   const sv = document.getElementById("filterViatura");
   const st = document.getElementById("filterTransportador");
@@ -154,8 +175,8 @@ function fillFilters(){
   sv.innerHTML='<option value="">Todas</option>';
   st.innerHTML='<option value="">Todos</option>';
 
-  v.forEach(x=>sv.innerHTML+=`<option value="${x}">${x}</option>`);
-  t.forEach(x=>st.innerHTML+=`<option value="${x}">${x}</option>`);
+  viaturas.forEach(v=>sv.innerHTML+=`<option value="${v}">${v}</option>`);
+  transps.forEach(t=>st.innerHTML+=`<option value="${t}">${t}</option>`);
 }
 
 function renderData(){
@@ -203,7 +224,7 @@ function renderData(){
       <b>${r["cliente"]||""}</b><br>
       ${r["transportador"]||""}<br>
       ${r["tipo viatura"]||""}<br>
-      ${r["designação"]||""}<br>
+      ${r["designacao"]||""}<br>
       Descarga: ${r["data descarga"]||""}<br>
       <b>${r["destino"]||""}</b>
     `;
@@ -214,6 +235,7 @@ function renderData(){
   container.appendChild(cards);
 }
 
+/* controlos */
 function changeDate(d){
   currentDate.setDate(currentDate.getDate()+d);
   document.getElementById("datePicker").value = toLocalDateString(currentDate);
@@ -221,7 +243,7 @@ function changeDate(d){
 }
 
 function today(){
-  currentDate=new Date();
+  currentDate = new Date();
   document.getElementById("datePicker").value = toLocalDateString(currentDate);
   renderData();
 }
