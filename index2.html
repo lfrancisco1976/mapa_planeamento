@@ -3,121 +3,125 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Planeamento Transportes EGEO</title>
+  <title>Planeamento EGEO</title>
   <style>
     :root {
-      --primary: #2b7a78; --primary-dark: #205f5c; --bg: #f4f6f8;
-      --card-bg: #ffffff; --shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --primary: #2b7a78; --bg: #f0f2f5; --white: #ffffff;
       --basc: #e6f7ff; --cis: #fff5e6; --semi: #f3e6ff;
     }
-    body { margin: 0; font-family: "Segoe UI", sans-serif; background: var(--bg); color: #333; }
-    header { background: var(--primary); color: white; padding: 20px; text-align: center; font-size: 1.5rem; font-weight: 600; box-shadow: var(--shadow); }
-    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px; }
-    button, select, input[type="date"] { padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary); color: white; cursor: pointer; }
-    select, input[type="date"] { background: #fff; color: #333; border: 1px solid #ccc; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .date-title { font-size: 1.3rem; font-weight: 600; color: var(--primary-dark); margin-bottom: 15px; border-left: 5px solid var(--primary); padding-left: 10px; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
-    .card { border-radius: 12px; padding: 15px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 5px; }
-    .card-header { font-weight: bold; color: var(--primary); font-size: 1.1rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 5px; }
-    .card-row { font-size: 0.9rem; }
-    .tag { font-weight: bold; color: #555; }
-    .loading { text-align: center; margin: 40px; font-weight: bold; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; color: #333; }
+    header { background: var(--primary); color: white; padding: 1.5rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    
+    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 20px; background: var(--white); border-bottom: 1px solid #ddd; sticky; top: 0; z-index: 100; }
+    button, select, input { padding: 10px 15px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; font-size: 14px; }
+    button { background: var(--primary); color: white; border: none; font-weight: bold; }
+    button:hover { opacity: 0.9; }
+
+    .container { max-width: 1100px; margin: 20px auto; padding: 0 15px; }
+    .status-bar { margin-bottom: 15px; font-weight: bold; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 10px; }
+    
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .card { background: var(--white); border-radius: 10px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eee; transition: 0.2s; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+    .card-title { font-weight: bold; font-size: 1.1rem; color: var(--primary); margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
+    .card-row { margin: 4px 0; font-size: 0.9rem; }
+    .label { font-weight: 600; color: #666; width: 100px; display: inline-block; }
+
+    #loading { text-align: center; padding: 50px; }
+    .spinner { width: 80px; animation: spin 2s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<header>Planeamento Transportes EGEO</header>
+<header>Planeamento de Transportes EGEO</header>
 
 <div class="controls">
-  <button onclick="changeDate(-1)">◀ Anterior</button>
-  <button onclick="today()">Hoje</button>
-  <button onclick="changeDate(1)">Seguinte ▶</button>
-  <button onclick="loadData()">🔄 Atualizar</button>
+  <button onclick="changeDate(-1)">◀ Ant.</button>
+  <button onclick="setToday()">Hoje</button>
+  <button onclick="changeDate(1)">Prox. ▶</button>
   <input type="date" id="datePicker" onchange="pickDate(this.value)">
-  <select id="filterViatura" onchange="renderData()"><option value="">Todas as Viaturas</option></select>
-  <select id="filterTransportador" onchange="renderData()"><option value="">Todos os Transportadores</option></select>
+  <select id="filterTransp" onchange="render()"><option value="">Transportadores (Todos)</option></select>
+  <button onclick="fetchData()" style="background: #444;">🔄</button>
 </div>
 
-<div id="loading" class="loading" style="display:none;">A carregar dados...</div>
-<div class="container" id="dataContainer"></div>
+<div class="container">
+  <div id="loading">
+    <img src="logo.png" class="spinner" alt="Carregando...">
+    <p>A sincronizar dados...</p>
+  </div>
+  
+  <div id="statusBar" class="status-bar"></div>
+  <div id="output" class="grid"></div>
+</div>
 
 <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbwdzZHBbTCdhyXLCXNKaUlHz9X4-MfWqQUDdYt9ETgRQJfe--ePwYDIqvlcKGsMFSM/exec"; // COLA AQUI O URL DA IMPLEMENTAÇÃO
-  let allData = [];
-  let currentDate = new Date();
+  const API_URL = "https://script.google.com/macros/s/AKfycbxgCwosIROsUEiNBH6rzzaHVn8WHmthgeA9lIFgiquHOKXnDpsUwysumSrz45oYlzOy/exec"; 
+  let rawData = [];
+  let viewDate = new Date();
 
-  // Converte DD/MM/YYYY ou Datas ISO para YYYY-MM-DD local
-  function toLocalISO(dateInput) {
-    if (!dateInput) return "";
-    let d;
-    if (typeof dateInput === 'string' && dateInput.includes('/')) {
-      const [day, month, year] = dateInput.split('/');
-      d = new Date(year, month - 1, day);
-    } else {
-      d = new Date(dateInput);
+  // 1. CARREGAR DADOS
+  async function fetchData() {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('output').innerHTML = '';
+    try {
+      const response = await fetch(API_URL);
+      rawData = await response.json();
+      populateFilters();
+      render();
+    } catch (e) {
+      document.getElementById('output').innerHTML = "Erro ao carregar dados da API.";
     }
-    if (isNaN(d.getTime())) return "";
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  // 2. NORMALIZAR DATAS (Evita erro de fuso horário)
+  function formatDateKey(dateObj) {
+    const d = new Date(dateObj);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  async function loadData() {
-    document.getElementById("loading").style.display = "block";
-    try {
-      const res = await fetch(API_URL);
-      allData = await res.json();
-      fillFilters();
-      renderData();
-    } catch (e) {
-      document.getElementById("dataContainer").innerHTML = "Erro ao carregar dados.";
+  function parseSheetDate(str) {
+    if (!str) return "";
+    if (str.includes('/')) {
+      const [d, m, y] = str.split('/');
+      return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
     }
-    document.getElementById("loading").style.display = "none";
+    return str; // Caso já venha YYYY-MM-DD
   }
 
-  function fillFilters() {
-    const viaturas = [...new Set(allData.map(i => i["Tipo viatura"]))].filter(Boolean).sort();
-    const trans = [...new Set(allData.map(i => i["Transportador"]))].filter(Boolean).sort();
-    
-    let vHtml = '<option value="">Todas as Viaturas</option>';
-    viaturas.forEach(v => vHtml += `<option value="${v}">${v}</option>`);
-    document.getElementById("filterViatura").innerHTML = vHtml;
-
-    let tHtml = '<option value="">Todos os Transportadores</option>';
-    trans.forEach(t => tHtml += `<option value="${t}">${t}</option>`);
-    document.getElementById("filterTransportador").innerHTML = tHtml;
+  // 3. FILTROS DINÂMICOS
+  function populateFilters() {
+    const list = [...new Set(rawData.map(item => item["Transportador"]))].filter(Boolean).sort();
+    const select = document.getElementById('filterTransp');
+    select.innerHTML = '<option value="">Transportadores (Todos)</option>';
+    list.forEach(t => select.innerHTML += `<option value="${t}">${t}</option>`);
   }
 
-  function renderData() {
-    const container = document.getElementById("dataContainer");
-    container.innerHTML = "";
+  // 4. RENDERIZAR
+  function render() {
+    const container = document.getElementById('output');
+    const selectedTransp = document.getElementById('filterTransp').value;
+    const targetDate = formatDateKey(viewDate);
     
-    const targetDate = toLocalISO(currentDate);
-    const selV = document.getElementById("filterViatura").value;
-    const selT = document.getElementById("filterTransportador").value;
+    document.getElementById('datePicker').value = targetDate;
+    container.innerHTML = '';
 
-    const filtered = allData.filter(row => {
-      // Nota: Usei "Data Carga" com C maiúsculo conforme a sua lista
-      return toLocalISO(row["Data Carga"]) === targetDate &&
-             (!selV || row["Tipo viatura"] === selV) &&
-             (!selT || row["Transportador"] === selT);
+    const filtered = rawData.filter(row => {
+      const rowDate = parseSheetDate(row["Data Carga"]);
+      return rowDate === targetDate && (!selectedTransp || row["Transportador"] === selectedTransp);
     });
 
+    document.getElementById('statusBar').innerText = `${filtered.length} serviços encontrados para ${targetDate}`;
+
     if (filtered.length === 0) {
-      container.innerHTML = `<p style="text-align:center">Sem registos para ${targetDate}</p>`;
+      container.innerHTML = '<p>Nenhum registo para esta data.</p>';
       return;
     }
 
-    const title = document.createElement("div");
-    title.className = "date-title";
-    title.innerText = `${targetDate} — ${filtered.length} Transporte(s)`;
-    container.appendChild(title);
-
-    const grid = document.createElement("div");
-    grid.className = "cards";
-
     filtered.forEach(row => {
-      const card = document.createElement("div");
-      card.className = "card";
+      const card = document.createElement('div');
+      card.className = 'card';
       
       // Cores por tipo
       const tipo = (row["Tipo viatura"] || "").toUpperCase();
@@ -126,31 +130,30 @@
       else if (tipo.includes("SEMI")) card.style.background = "var(--semi)";
 
       card.innerHTML = `
-        <div class="card-header">${row["Cliente"] || "N/A"}</div>
-        <div class="card-row"><span class="tag">NEI:</span> ${row["NEI EGEO"] || "-"}</div>
-        <div class="card-row"><span class="tag">Transp:</span> ${row["Transportador"] || "-"}</div>
-        <div class="card-row"><span class="tag">Viatura:</span> ${row["Tipo viatura"] || "-"}</div>
-        <div class="card-row"><em>${row["Designação"] || ""}</em></div>
-        <div class="card-row"><span class="tag">Destino:</span> <strong>${row["Destino"] || "-"}</strong></div>
-        <div class="card-row" style="margin-top:5px; font-size:0.8rem; opacity:0.8;">Descarga: ${row["Data Descarga"] || "-"}</div>
+        <div class="card-title">${row["Cliente"] || 'S/ Cliente'}</div>
+        <div class="card-row"><span class="label">NEI EGEO:</span>${row["NEI EGEO"] || '-'}</div>
+        <div class="card-row"><span class="label">Transp.:</span><strong>${row["Transportador"] || '-'}</strong></div>
+        <div class="card-row"><span class="label">Viatura:</span>${row["Tipo viatura"] || '-'}</div>
+        <div class="card-row"><span class="label">Designação:</span><em>${row["Designação"] || '-'}</em></div>
+        <div class="card-row" style="margin-top:10px; color:var(--primary)">
+          <span class="label">Destino:</span><strong>${row["Destino"] || '-'}</strong>
+        </div>
+        <div class="card-row" style="font-size:0.75rem; color:#888; margin-top:5px;">
+          Descarga: ${row["Data Descarga"] || '-'}
+        </div>
       `;
-      grid.appendChild(card);
+      container.appendChild(card);
     });
-    container.appendChild(grid);
   }
 
-  function changeDate(n) { currentDate.setDate(currentDate.getDate() + n); updateUI(); }
-  function today() { currentDate = new Date(); updateUI(); }
-  function pickDate(v) { if(v) { const [y,m,d] = v.split("-"); currentDate = new Date(y, m-1, d); renderData(); } }
-  function updateUI() { 
-    document.getElementById("datePicker").value = toLocalISO(currentDate);
-    renderData();
-  }
+  // 5. NAVEGAÇÃO
+  function changeDate(days) { viewDate.setDate(viewDate.getDate() + days); render(); }
+  function setToday() { viewDate = new Date(); render(); }
+  function pickDate(val) { if(val) { viewDate = new Date(val); render(); } }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    updateUI();
-    loadData();
-  });
+  // Iniciar
+  document.addEventListener('DOMContentLoaded', fetchData);
 </script>
+
 </body>
 </html>
