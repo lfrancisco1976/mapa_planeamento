@@ -7,47 +7,30 @@
 
 <style>
 :root {
-  --primary: #2b7a78;
-  --primary-dark: #205f5c;
-  --bg: #f4f6f8;
-  --shadow: 0 4px 12px rgba(0,0,0,0.1);
-  --basc: #e6f7ff;
-  --cis: #fff5e6;
-  --semi: #f3e6ff;
+  --primary:#2b7a78;
+  --bg:#f4f6f8;
+  --shadow:0 4px 12px rgba(0,0,0,0.1);
+  --basc:#e6f7ff;
+  --cis:#fff5e6;
+  --semi:#f3e6ff;
 }
-
-body { margin:0; font-family:Segoe UI; background:var(--bg); }
-
-header {
-  background:var(--primary);
-  color:#fff;
-  padding:20px;
-  text-align:center;
-  font-size:1.5rem;
-}
+body {margin:0;font-family:Segoe UI;background:var(--bg);}
+header {background:var(--primary);color:#fff;padding:20px;text-align:center;}
 
 .controls {
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:10px;
-  margin:15px;
+  display:flex;flex-wrap:wrap;justify-content:center;
+  gap:10px;margin:15px;
 }
 
-button, select, input {
-  padding:10px;
-  border-radius:8px;
-  font-size:0.9rem;
+button,select,input {
+  padding:10px;border-radius:8px;font-size:0.9rem;
 }
 
 button {
-  background:var(--primary);
-  color:white;
-  border:none;
-  cursor:pointer;
+  background:var(--primary);color:#fff;border:none;cursor:pointer;
 }
 
-.container { max-width:1200px; margin:auto; padding:20px; }
+.container {max-width:1200px;margin:auto;padding:20px;}
 
 .cards {
   display:grid;
@@ -61,16 +44,12 @@ button {
   box-shadow:var(--shadow);
 }
 
-.loading { text-align:center; margin:40px; }
-
-.loading img {
-  width:60px;
-  animation:spin 2s linear infinite;
-}
+.loading {text-align:center;margin:40px;}
+.loading img {width:60px;animation:spin 2s linear infinite;}
 
 @keyframes spin {
-  from {transform:rotate(0deg);}
-  to {transform:rotate(360deg);}
+  from{transform:rotate(0)}
+  to{transform:rotate(360deg)}
 }
 </style>
 </head>
@@ -109,16 +88,16 @@ const API_URL = "https://script.google.com/macros/s/AKfycbydj-7yUQ9j7b4SMOAawbZU
 let allData = [];
 let currentDate = new Date();
 
-/* ✅ normalizar texto */
-function norm(txt) {
-  return (txt || "").toString().trim().toLowerCase();
-}
+/* NORMALIZAR TEXTO */
+function norm(t){ return (t||"").toString().trim().toLowerCase(); }
 
-/* ✅ parse data LOCAL */
-function parseDate(str) {
-  if (!str) return null;
+/* 🔥 PARSE DATA (COM HORA CORRIGIDA) */
+function parseDate(str){
+  if(!str) return null;
 
-  if (typeof str === "string" && str.includes("/")) {
+  str = str.toString().trim().split(" ")[0]; // remove hora
+
+  if(str.includes("/")){
     const [d,m,y] = str.split("/");
     return new Date(y, m-1, d);
   }
@@ -126,29 +105,28 @@ function parseDate(str) {
   return new Date(str);
 }
 
-/* ✅ YYYY-MM-DD local */
-function toLocalDateString(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth()+1).padStart(2,"0");
-  const d = String(date.getDate()).padStart(2,"0");
-  return `${y}-${m}-${d}`;
+/* DATA LOCAL */
+function toLocalDateString(d){
+  return d.getFullYear()+"-"+
+  String(d.getMonth()+1).padStart(2,"0")+"-"+
+  String(d.getDate()).padStart(2,"0");
 }
 
-function showLoading(s) {
-  document.getElementById("loading").style.display = s ? "block":"none";
+function showLoading(s){
+  document.getElementById("loading").style.display = s?"block":"none";
 }
 
-async function loadData() {
+async function loadData(){
   showLoading(true);
 
-  try {
+  try{
     const res = await fetch(API_URL);
     let raw = await res.json();
 
-    /* 🔥 NORMALIZA COLUNAS */
-    allData = raw.map(row => {
-      let r = {};
-      Object.keys(row).forEach(k => {
+    /* NORMALIZA COLUNAS */
+    allData = raw.map(row=>{
+      let r={};
+      Object.keys(row).forEach(k=>{
         r[norm(k)] = row[k];
       });
       return r;
@@ -159,80 +137,75 @@ async function loadData() {
     fillFilters();
     renderData();
 
-  } catch(e) {
-    document.getElementById("dataContainer").innerHTML = "Erro ao carregar";
+  }catch(e){
+    document.getElementById("dataContainer").innerHTML="Erro ao carregar";
   }
 
   showLoading(false);
 }
 
-function fillFilters() {
-  const viaturas = [...new Set(allData.map(i => norm(i["tipo viatura"])).filter(Boolean))];
-  const tps = [...new Set(allData.map(i => norm(i["transportador"])).filter(Boolean))];
+function fillFilters(){
+  const v = [...new Set(allData.map(i=>norm(i["tipo viatura"])).filter(Boolean))];
+  const t = [...new Set(allData.map(i=>norm(i["transportador"])).filter(Boolean))];
 
-  const vSel = document.getElementById("filterViatura");
-  const tSel = document.getElementById("filterTransportador");
+  const sv = document.getElementById("filterViatura");
+  const st = document.getElementById("filterTransportador");
 
-  vSel.innerHTML = '<option value="">Todas</option>';
-  tSel.innerHTML = '<option value="">Todos</option>';
+  sv.innerHTML='<option value="">Todas</option>';
+  st.innerHTML='<option value="">Todos</option>';
 
-  viaturas.forEach(v => vSel.innerHTML += `<option value="${v}">${v}</option>`);
-  tps.forEach(t => tSel.innerHTML += `<option value="${t}">${t}</option>`);
+  v.forEach(x=>sv.innerHTML+=`<option value="${x}">${x}</option>`);
+  t.forEach(x=>st.innerHTML+=`<option value="${x}">${x}</option>`);
 }
 
-function renderData() {
+function renderData(){
 
   const container = document.getElementById("dataContainer");
-  container.innerHTML = "";
+  container.innerHTML="";
 
   const selV = norm(document.getElementById("filterViatura").value);
   const selT = norm(document.getElementById("filterTransportador").value);
 
   const todayStr = toLocalDateString(currentDate);
 
-  const filtered = allData.filter(row => {
-
-    const carga = row["data carga"];
-    const d = parseDate(carga);
-
-    if (!d) return false;
-
-    const dStr = toLocalDateString(d);
+  const filtered = allData.filter(row=>{
+    const d = parseDate(row["data carga"]);
+    if(!d) return false;
 
     return (
-      dStr === todayStr &&
-      (!selV || norm(row["tipo viatura"]) === selV) &&
-      (!selT || norm(row["transportador"]) === selT)
+      toLocalDateString(d) === todayStr &&
+      (!selV || norm(row["tipo viatura"])===selV) &&
+      (!selT || norm(row["transportador"])===selT)
     );
   });
 
   console.log("DATA:", todayStr, "RESULTADOS:", filtered.length);
 
-  if (!filtered.length) {
-    container.innerHTML = "<p style='text-align:center'>Nenhum transporte para esta data</p>";
+  if(!filtered.length){
+    container.innerHTML="<p style='text-align:center'>Nenhum transporte para esta data</p>";
     return;
   }
 
   const cards = document.createElement("div");
-  cards.className = "cards";
+  cards.className="cards";
 
-  filtered.forEach(r => {
-    const c = document.createElement("div");
-    c.className = "card";
+  filtered.forEach(r=>{
+    const c=document.createElement("div");
+    c.className="card";
 
     const tipo = norm(r["tipo viatura"]);
 
-    if (tipo === "basculante") c.style.background = "var(--basc)";
-    if (tipo === "cisterna") c.style.background = "var(--cis)";
-    if (tipo === "semi-reboque") c.style.background = "var(--semi)";
+    if(tipo==="basculante") c.style.background="var(--basc)";
+    if(tipo==="cisterna") c.style.background="var(--cis)";
+    if(tipo==="semi-reboque") c.style.background="var(--semi)";
 
-    c.innerHTML = `
-      <b>${r["cliente"] || ""}</b><br>
-      ${r["transportador"] || ""}<br>
-      ${r["tipo viatura"] || ""}<br>
-      ${r["designação"] || ""}<br>
-      Descarga: ${r["data descarga"] || ""}<br>
-      <b>${r["destino"] || ""}</b>
+    c.innerHTML=`
+      <b>${r["cliente"]||""}</b><br>
+      ${r["transportador"]||""}<br>
+      ${r["tipo viatura"]||""}<br>
+      ${r["designação"]||""}<br>
+      Descarga: ${r["data descarga"]||""}<br>
+      <b>${r["destino"]||""}</b>
     `;
 
     cards.appendChild(c);
@@ -241,26 +214,26 @@ function renderData() {
   container.appendChild(cards);
 }
 
-function changeDate(d) {
+function changeDate(d){
   currentDate.setDate(currentDate.getDate()+d);
   document.getElementById("datePicker").value = toLocalDateString(currentDate);
   renderData();
 }
 
-function today() {
-  currentDate = new Date();
+function today(){
+  currentDate=new Date();
   document.getElementById("datePicker").value = toLocalDateString(currentDate);
   renderData();
 }
 
-function pickDate(v) {
-  if (!v) return;
-  const [y,m,d] = v.split("-");
-  currentDate = new Date(y, m-1, d);
+function pickDate(v){
+  if(!v) return;
+  const [y,m,d]=v.split("-");
+  currentDate=new Date(y,m-1,d);
   renderData();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", ()=>{
   document.getElementById("datePicker").value = toLocalDateString(currentDate);
   loadData();
 });
