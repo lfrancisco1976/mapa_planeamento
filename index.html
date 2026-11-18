@@ -36,12 +36,12 @@
         <button id="tab-2026" onclick="switchView('2026')"
           class="px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 bg-emerald-600 text-white shadow">
           <i data-lucide="calendar-days" class="w-4 h-4"></i>
-          Planeados / Realizados (2026)
+          Serviços Planeados (2026)
         </button>
         <button id="tab-pendentes" onclick="switchView('pendentes')"
           class="px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 text-slate-300 hover:text-white">
           <i data-lucide="clock" class="w-4 h-4"></i>
-          Serv. Pendentes
+          Serviços Pendentes
           <span id="badge-pendentes-count" class="bg-slate-700 text-xs px-1.5 py-0.5 rounded-full">0</span>
         </button>
       </nav>
@@ -105,7 +105,7 @@
         </div>
       </div>
 
-      <!-- Filtro de Intervalo de Datas -->
+      <!-- Filtro de Datas -->
       <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-3">
           <span class="text-xs font-semibold text-slate-500 uppercase flex items-center gap-1">
@@ -134,7 +134,7 @@
     <!-- Loader -->
     <div id="loader" class="flex flex-col items-center justify-center py-20 text-slate-500">
       <div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-      <p class="text-sm font-medium">A obter dados do Google Sheets...</p>
+      <p class="text-sm font-medium">A obter dados independentes do Google Sheets...</p>
     </div>
 
     <!-- Erro -->
@@ -143,9 +143,8 @@
       <p class="text-sm mt-1" id="error-message"></p>
     </div>
 
-    <!-- VISTA 1: 2026 (Calendário Diário por Defeito) -->
+    <!-- VISTA 1: SERVIÇOS PLANEADOS (2026) com Calendário Diário -->
     <div id="view-2026" class="hidden space-y-4">
-      <!-- Barra de Navegação Diária -->
       <div id="day-navigator" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-2">
           <button onclick="changeSelectedDay(-1)"
@@ -164,7 +163,7 @@
 
         <div class="flex items-center gap-3">
           <div class="text-right">
-            <div class="text-xs text-slate-400 uppercase font-semibold">Data Selecionada</div>
+            <div class="text-xs text-slate-400 uppercase font-semibold">Data Selecionada (Planeamento)</div>
             <div class="text-lg font-bold font-display text-slate-800 capitalize" id="selected-day-label">--</div>
           </div>
           <input type="date" id="single-day-picker" onchange="pickSpecificDay(this.value)"
@@ -172,7 +171,6 @@
         </div>
       </div>
 
-      <!-- Grelha/Tabela Resumida 2026 -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
@@ -193,7 +191,7 @@
         </div>
         <div id="empty-2026" class="hidden py-12 text-center text-slate-400">
           <i data-lucide="calendar-off" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
-          <p class="text-sm font-medium">Nenhum serviço planeado ou realizado para os critérios selecionados.</p>
+          <p class="text-sm font-medium">Nenhum serviço planeado para esta data / critérios.</p>
         </div>
       </div>
     </div>
@@ -227,7 +225,7 @@
 
   </main>
 
-  <!-- Pop-up (Modal) de Detalhes -->
+  <!-- Modal de Detalhes -->
   <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4" onclick="closeModal(event)">
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
       <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -240,9 +238,7 @@
         </button>
       </div>
 
-      <div id="modal-body" class="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-        <!-- Preenchido dinamicamente -->
-      </div>
+      <div id="modal-body" class="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm"></div>
 
       <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end">
         <button onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition">
@@ -253,7 +249,6 @@
   </div>
 
   <script>
-    // URLs publicados do Google Sheets em formato CSV
     const BASE_PUB_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSo6rJizYl89_uc7kqJkKovy_-j5uMDE60JSjzgFB9kyIxViVtKVBb6MOv-MGkBvxS4HgxmMMbRCDes/pub?output=csv";
     const URL_PENDENTES = `${BASE_PUB_URL}&sheet=${encodeURIComponent("Serv. pendentes")}`;
     const URL_2026 = `${BASE_PUB_URL}&sheet=${encodeURIComponent("2026")}`;
@@ -261,7 +256,7 @@
     let dataPendentes = [];
     let data2026 = [];
     let currentView = "2026";
-    let selectedDateISO = getTodayISO(); // Por definição: dia de hoje
+    let selectedDateISO = getTodayISO();
     let isRangeFilterActive = false;
 
     const MONTHS_PT = {
@@ -277,16 +272,13 @@
       return `${y}-${m}-${d}`;
     }
 
-    // Converte formatos como "19/nov.", "2/jan.", "2026-11-19" ou "19/11/2026" para YYYY-MM-DD
     function parseSheetDateToISO(rawDate, defaultYear = 2026) {
       if (!rawDate) return null;
       const clean = String(rawDate).trim().toLowerCase().replace(/\.$/, '');
       if (!clean) return null;
 
-      // Formato ISO YYYY-MM-DD
       if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
 
-      // Formato DD/MM/YYYY ou DD-MM-YYYY
       const dmy = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
       if (dmy) {
         const day = dmy[1].padStart(2, '0');
@@ -295,7 +287,6 @@
         return `${year}-${month}-${day}`;
       }
 
-      // Formato DD/mmm (ex: "19/nov", "2/jan")
       const dmText = clean.match(/^(\d{1,2})[\/\-]([a-zç]{3})/);
       if (dmText && MONTHS_PT.hasOwnProperty(dmText[2])) {
         const day = dmText[1].padStart(2, '0');
@@ -313,7 +304,6 @@
       return dateObj.toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
     }
 
-    // Carregar CSV via PapaParse
     function fetchCSV(url) {
       return new Promise((resolve, reject) => {
         Papa.parse(url, {
@@ -336,11 +326,10 @@
           fetchCSV(URL_2026)
         ]);
 
-        // Na folha "Serv. pendentes", a linha 0 tem #VALUE! e o cabeçalho está na linha 1
+        // Processar separadamente cada folha de forma independente
         const headerIdxPend = rawPend.findIndex(r => r.some(c => c && c.trim().toLowerCase() === 'cliente'));
         dataPendentes = rowsToObjects(rawPend, headerIdxPend >= 0 ? headerIdxPend : 1);
 
-        // Na folha "2026", o cabeçalho está na linha 0
         const headerIdx2026 = raw2026.findIndex(r => r.some(c => c && c.trim().toLowerCase() === 'cliente'));
         data2026 = rowsToObjects(raw2026, headerIdx2026 >= 0 ? headerIdx2026 : 0);
 
@@ -357,8 +346,7 @@
         console.error(err);
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('error-box').classList.remove('hidden');
-        document.getElementById('error-message').textContent =
-          "Não foi possível ler as folhas do Google Sheets. Verifica se o ficheiro continua publicado na web.";
+        document.getElementById('error-message').textContent = "Erro ao carregar as folhas do Google Sheets. Confirme se o link público está ativo.";
       } finally {
         icon.classList.remove('animate-spin');
       }
@@ -371,7 +359,6 @@
 
       for (let i = headerIndex + 1; i < rows.length; i++) {
         const row = rows[i];
-        // Ignorar linhas completamente vazias ou sem Cliente e sem NEI
         if (!row || row.every(cell => !cell || !cell.trim())) continue;
 
         const obj = { _raw: {} };
@@ -381,7 +368,6 @@
           obj._raw[h] = val;
         });
 
-        // Ignorar linhas sem cliente nem designação (linhas auxiliares)
         if (!obj['Cliente'] && !obj['NEI EGEO']) continue;
 
         obj._isoCarga = parseSheetDateToISO(obj['Data carga'], 2026);
@@ -391,6 +377,7 @@
     }
 
     function populateFilterDropdowns() {
+      // Combina as opções de ambas as folhas para os menus pendentes/filtros globais
       const allRecords = [...data2026, ...dataPendentes];
       fillSelect('filter-cliente', allRecords.map(r => r['Cliente']));
       fillSelect('filter-viatura', allRecords.map(r => r['Tipo viatura']));
@@ -428,7 +415,6 @@
       applyFilters();
     }
 
-    // Navegação de Calendário (Vista 2026)
     function changeSelectedDay(deltaDays) {
       const [y, m, d] = selectedDateISO.split('-').map(Number);
       const dt = new Date(y, m - 1, d + deltaDays);
@@ -498,16 +484,17 @@
       if (currentView === '2026') {
         if (isRangeFilterActive) {
           dayNav.classList.add('opacity-50');
-          dateHint.textContent = "A mostrar intervalo de datas (navegação diária pausada)";
+          dateHint.textContent = "A mostrar intervalo de datas";
         } else {
           dayNav.classList.remove('opacity-50');
-          dateHint.textContent = "A mostrar o dia selecionado no calendário";
+          dateHint.textContent = "A mostrar o dia selecionado";
         }
       } else {
-        dateHint.textContent = isRangeFilterActive ? "Filtrado por intervalo de datas" : "A mostrar todos os pendentes (com ou sem data)";
+        dateHint.textContent = isRangeFilterActive ? "Filtrado por intervalo de datas" : "A mostrar todos os pendentes";
       }
 
-      const sourceList = currentView === '2026' ? data2026 : dataPendentes;
+      // SELEÇÃO RIGOROSA DA FONTE DE DADOS CONSOANTE A VISTA ATIVA
+      const sourceList = (currentView === '2026') ? data2026 : dataPendentes;
 
       const filtered = sourceList.filter(item => {
         if (cliente && item['Cliente'] !== cliente) return false;
@@ -522,13 +509,11 @@
           if (!haystack.includes(search)) return false;
         }
 
-        // Filtro de datas
         if (isRangeFilterActive) {
           if (!item._isoCarga) return false;
           if (dateStart && item._isoCarga < dateStart) return false;
           if (dateEnd && item._isoCarga > dateEnd) return false;
         } else if (currentView === '2026') {
-          // Modo calendário diário por defeito
           if (item._isoCarga !== selectedDateISO) return false;
         }
 
@@ -555,10 +540,10 @@
       }
       empty.classList.add('hidden');
 
-      tbody.innerHTML = items.map((item, idx) => {
+      tbody.innerHTML = items.map(item => {
         const isAdr = (item['TRANSPORTE ADR'] || '').toUpperCase() === 'SIM';
         return `
-          <tr onclick='openModal(${JSON.stringify(item).replace(/'/g, "&#39;")}, "Planeamento 2026")'
+          <tr onclick='openModal(${JSON.stringify(item).replace(/'/g, "&#39;")}, "Serviço Planeado (2026)")'
               class="hover:bg-emerald-50/60 cursor-pointer transition">
             <td class="py-3 px-4 whitespace-nowrap font-medium text-slate-700">${escapeHtml(item['Data carga'] || '-')}</td>
             <td class="py-3 px-4">
@@ -670,12 +655,10 @@
         .replace(/"/g, "&quot;");
     }
 
-    // Fechar modal com tecla ESC
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeModal();
     });
 
-    // Inicializar
     lucide.createIcons();
     loadAllData();
   </script>
