@@ -60,7 +60,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </head>
 <body>
 <header>
-  <h1>Mapa de Planeamento <small style="font-weight:400;color:#9fb0be">v4</small></h1>
+  <h1>Mapa de Planeamento <small style="font-weight:400;color:#9fb0be">v5</small></h1>
   <nav role="tablist">
     <button role="tab" id="t-pend" aria-selected="true">Serviços pendentes</button>
     <button role="tab" id="t-cal" aria-selected="false">Planeamento 2026</button>
@@ -138,8 +138,10 @@ async function loadSheet(cfg){
     try{const g=await discover();gid=g[norm(cfg.name)]}catch(e){}
     if(gid===undefined||gid==='')throw new Error('Não foi possível descobrir o gid da folha "'+cfg.name+'".\nAbra o link publicado, clique no separador da folha e copie o número a seguir a "gid=" para CONFIG no index.html.');
   }
-  const res=await fetch(BASE+'/pub?output=csv&gid='+gid+'&t='+Date.now());
-  if(!res.ok)throw new Error('Erro '+res.status+' ao ler a folha "'+cfg.name+'".');
+  const u=BASE+'/pub?output=csv&gid='+gid;
+  let res;
+  try{res=await fetch(u+'&t='+Date.now());if(!res.ok)res=await fetch(u)}catch(e){try{res=await fetch(u)}catch(e2){throw new Error('Sem ligação à folha "'+cfg.name+'".')}}
+  if(!res.ok)throw new Error('Erro '+res.status+' ao ler a folha "'+cfg.name+'" (gid '+gid+').\nNo Google Sheets, confirme em Ficheiro > Partilhar > Publicar na Web que esta folha (ou o documento inteiro) continua publicada, e que o gid no CONFIG é o do separador certo.');
   return buildTable(parseCSV(await res.text()));
 }
 function buildTable(raw){
@@ -170,7 +172,7 @@ function buildTable(raw){
 }
 
 /* ---------- estado ---------- */
-const T={};const S={view:'pend',pend:{from:'',to:'',cliente:'',viatura:'',transp:'',q:''},cal:{cur:TODAY,mode:'dia',from:'',to:'',cliente:'',viatura:'',transp:''}};
+const T={},E={};const S={view:'pend',pend:{from:'',to:'',cliente:'',viatura:'',transp:'',q:''},cal:{cur:TODAY,mode:'dia',from:'',to:'',cliente:'',viatura:'',transp:''}};
 
 const uniq=(t,i)=>i<0?[]:[...new Set(t.recs.map(r=>r.v[i].trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt'));
 const sel=(id,lab,opts,val)=>`<label>${lab}<select id="${id}"><option value="">Todos</option>${opts.map(o=>`<option${o===val?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
@@ -213,6 +215,7 @@ $('#dlg').addEventListener('click',e=>{if(e.target.id==='dlg')e.target.close()})
 /* ---------- vista: pendentes ---------- */
 function viewPend(){
   const t=T.pend;
+  if(!t){$('#app').innerHTML='<div class="err">'+esc(E.pend||'Folha não carregada.')+'</div>';return}
   $('#app').innerHTML=filtersHTML('pend',t,true,t.cols.data>=0)+'<div id="out"></div>';
   bindFilters('pend',keep=>{keep?drawPend():viewPend()});
   drawPend();
@@ -238,6 +241,7 @@ function cardHTML(t,r,n,pend){
 }
 function viewCal(){
   const t=T.plan,f=S.cal;
+  if(!t){$('#app').innerHTML='<div class="err">'+esc(E.plan||'Folha não carregada.')+'</div>';return}
   $('#app').innerHTML=`<div class="nv"><button id="pv" aria-label="Anterior">◀ Anterior</button><button id="td">Hoje</button><button id="nx" aria-label="Seguinte">Seguinte ▶</button>
    <input type="date" id="dp" value="${f.cur}" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit">
    <h2 id="ttl"></h2><div class="seg">${[['dia','Dia'],['semana','Semana'],['lista','Intervalo']].map(([k,l])=>`<button data-m="${k}" aria-pressed="${f.mode===k}">${l}</button>`).join('')}</div></div>`
@@ -274,16 +278,16 @@ function drawCal(){
 /* ---------- arranque ---------- */
 function show(v){
   S.view=v;$('#t-pend').setAttribute('aria-selected',v==='pend');$('#t-cal').setAttribute('aria-selected',v==='cal');
-  if(!T.pend||!T.plan)return;v==='pend'?viewPend():viewCal();
+  v==='pend'?viewPend():viewCal();
 }
 $('#t-pend').onclick=()=>show('pend');$('#t-cal').onclick=()=>show('cal');
 async function load(){
   $('#upd').textContent='A carregar…';$('#app').innerHTML='<div class="empty">A ler dados da folha…</div>';
   try{
     gids=null;
-    const[a,b]=await Promise.all([loadSheet(CONFIG.pend),loadSheet(CONFIG.plan)]);
-    T.pend=a;T.plan=b;
-    $('#upd').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+    const[a,b]=await Promise.allSettled([loadSheet(CONFIG.pend),loadSheet(CONFIG.plan)]);
+    T.pend=a.value||null;T.plan=b.value||null;E.pend=a.reason?a.reason.message:'';E.plan=b.reason?b.reason.message:'';
+    $('#upd').textContent=(T.pend||T.plan)?'Atualizado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}):'Erro ao carregar';
     show(S.view);
   }catch(e){
     $('#upd').textContent='Erro ao carregar';
