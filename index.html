@@ -94,10 +94,14 @@ const addDays=(k,n)=>{const d=toD(k);d.setDate(d.getDate()+n);return iso(d)};
 const mondayOf=k=>{const d=toD(k);d.setDate(d.getDate()-((d.getDay()+6)%7));return iso(d)};
 const fmt=k=>{if(!k)return'';const d=toD(k);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()};
 const fmtL=k=>{const d=toD(k);return WD[d.getDay()]+', '+d.getDate()+' de '+MS[d.getMonth()]+' de '+d.getFullYear()};
+const MABR={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
 function parseDate(s){
   s=String(s||'').trim();let m;
+  if(!s)return null;
   if(m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/))return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
-  if(m=s.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/)){let y=+m[3];if(y<100)y+=2000;return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
+  if(m=s.match(/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{2,4})/)){let y=+m[3];if(y<100)y+=2000;return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
+  if(m=norm(s).match(/(\d{1,2})\s*(?:de\s+)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\.?[\s\/\-]*(?:de\s+)?(\d{2,4})/)){let y=+m[3];if(y<100)y+=2000;return y+'-'+String(MABR[m[2]]).padStart(2,'0')+'-'+m[1].padStart(2,'0')}
+  if(/^\d{5}(\.\d+)?$/.test(s)&&+s>40000&&+s<60000){const d=new Date(Date.UTC(1899,11,30)+Math.floor(+s)*864e5);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}
   return null;
 }
 const TODAY=iso(new Date());
@@ -136,8 +140,10 @@ async function loadSheet(cfg){
 }
 function buildTable(raw){
   raw=raw.filter(r=>r.some(c=>c.trim()));
-  let hi=0,best=0;
-  raw.slice(0,15).forEach((r,i)=>{const n=r.filter(c=>c.trim()).length;if(n>best){best=n;hi=i}});
+  let hi=0,best=-1;
+  raw.slice(0,25).forEach((r,i)=>{const n=r.filter(c=>c.trim()).length;
+    const k=r.filter(c=>/cliente|transportador|viatura|data|carga|matricula|destino|origem/.test(norm(c))).length;
+    const sc=k*100+n;if(sc>best){best=sc;hi=i}});
   const hdr=(raw[hi]||[]).map((h,i)=>h.trim()||'Col. '+(i+1));
   const find=(...res)=>{for(const re of res){const i=hdr.findIndex(h=>re.test(norm(h)));if(i>=0)return i}return -1};
   const cols={
@@ -147,9 +153,11 @@ function buildTable(raw){
     data:find(/data.*carga/,/carga.*data/,/^data/,/data/)
   };
   const rows=raw.slice(hi+1).map(v=>{while(v.length<hdr.length)v.push('');return v}).filter(v=>v.some(c=>c.trim()));
-  if(cols.data<0){ // procurar coluna cujos valores sejam datas
-    for(let i=0;i<hdr.length;i++){const s=rows.slice(0,30).filter(v=>v[i]);if(s.length&&s.filter(v=>parseDate(v[i])).length/s.length>.6){cols.data=i;break}}
-  }
+  {const rate=i=>{const sm=rows.slice(0,200).filter(v=>(v[i]||'').trim());return sm.length?sm.filter(v=>parseDate(v[i])).length/sm.length:0};
+   let cand=[];hdr.forEach((h,i)=>{if(/data|carga/.test(norm(h)))cand.push(i)});
+   let bi=-1,br=0;cand.forEach(i=>{const r=rate(i);if(r>br){br=r;bi=i}});
+   if(br<.5){hdr.forEach((h,i)=>{const r=rate(i);if(r>br){br=r;bi=i}})}
+   cols.data=br>0?bi:cols.data}
   const recs=rows.map(v=>({v,d:cols.data>=0?parseDate(v[cols.data]):null}));
   // colunas do resumo: as encontradas + as primeiras com conteúdo
   const sum=[cols.data,cols.cliente,cols.viatura,cols.transp].filter(i=>i>=0);
@@ -243,12 +251,16 @@ function drawCal(){
   const t=T.plan,f=S.cal,out=$('#out');
   if(t.cols.data<0){out.innerHTML='<div class="err">Não foi encontrada uma coluna de data de carga na folha "'+esc(CONFIG.plan.name)+'".</div>';return}
   const byDay={};t.recs.filter(r=>r.d&&match(t,r,f,false)).forEach(r=>{(byDay[r.d]=byDay[r.d]||[]).push(r)});
-  const all=[];const reg=[];
+  const reg=[];
+  const datas=Object.keys(byDay).sort();
+  const diag=()=>`<div class="err" style="margin-bottom:10px">Sem cargas para os filtros/datas escolhidos.\nLinhas lidas: ${t.recs.length} · com data válida: ${t.recs.filter(r=>r.d).length} · coluna de data usada: "${esc(t.hdr[t.cols.data])}"${datas.length?'\nDatas com cargas: '+fmt(datas[0])+' a '+fmt(datas[datas.length-1]):'\nNenhuma linha tem data reconhecida. Cabeçalhos lidos: '+esc(t.hdr.join(' | '))}</div>${datas.length?'<p><button id="near" style="font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer">Ir para a data com cargas mais próxima</button></p>':''}`;
   const dayBlock=k=>{const rs=byDay[k]||[];return`<section class="dayc${k===TODAY?' today':''}"><h3>${esc(fmtL(k).replace(/ de \d{4}$/,''))}<span>${rs.length}</span></h3>`
     +rs.map(r=>{reg.push(r);return cardHTML(t,r,reg.length-1)}).join('')+(rs.length?'':'<small style="color:var(--mut)">Sem cargas</small>')+'</section>'};
-  if(f.mode==='dia'){$('#ttl').textContent=fmtL(f.cur);out.innerHTML='<div class="days">'+dayBlock(f.cur)+'</div>'}
+  const bindNear=()=>{const b=$('#near');if(b)b.onclick=()=>{f.cur=datas.reduce((x,k)=>Math.abs(toD(k)-toD(TODAY))<Math.abs(toD(x)-toD(TODAY))?k:x,datas[0]);viewCal()}};
+  if(f.mode==='dia'){$('#ttl').textContent=fmtL(f.cur);out.innerHTML=((byDay[f.cur]||[]).length?'':diag())+'<div class="days">'+dayBlock(f.cur)+'</div>';bindNear()}
   else if(f.mode==='semana'){const m=mondayOf(f.cur);$('#ttl').textContent='Semana de '+fmt(m)+' a '+fmt(addDays(m,6));
-    out.innerHTML='<div class="days w">'+[0,1,2,3,4,5,6].map(i=>dayBlock(addDays(m,i))).join('')+'</div>'}
+    const inW=[0,1,2,3,4,5,6].some(i=>(byDay[addDays(m,i)]||[]).length);
+    out.innerHTML=(inW?'':diag())+'<div class="days w">'+[0,1,2,3,4,5,6].map(i=>dayBlock(addDays(m,i))).join('')+'</div>';bindNear()}
   else{const ks=Object.keys(byDay).filter(k=>(!f.from||k>=f.from)&&(!f.to||k<=f.to)).sort();
     $('#ttl').textContent=ks.length?ks.length+' dias com cargas':'Intervalo';
     out.innerHTML=ks.length?'<div class="days">'+ks.map(dayBlock).join('')+'</div>':'<div class="empty">Sem cargas no intervalo escolhido. Defina "Data de" e "Data até".</div>'}
