@@ -60,7 +60,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </head>
 <body>
 <header>
-  <h1>Mapa de Planeamento</h1>
+  <h1>Mapa de Planeamento <small style="font-weight:400;color:#9fb0be">v4</small></h1>
   <nav role="tablist">
     <button role="tab" id="t-pend" aria-selected="true">Serviços pendentes</button>
     <button role="tab" id="t-cal" aria-selected="false">Planeamento 2026</button>
@@ -94,13 +94,16 @@ const addDays=(k,n)=>{const d=toD(k);d.setDate(d.getDate()+n);return iso(d)};
 const mondayOf=k=>{const d=toD(k);d.setDate(d.getDate()-((d.getDay()+6)%7));return iso(d)};
 const fmt=k=>{if(!k)return'';const d=toD(k);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()};
 const fmtL=k=>{const d=toD(k);return WD[d.getDay()]+', '+d.getDate()+' de '+MS[d.getMonth()]+' de '+d.getFullYear()};
+let DEFY=new Date().getFullYear();
 const MABR={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
 function parseDate(s){
   s=String(s||'').trim();let m;
   if(!s)return null;
   if(m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/))return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
   if(m=s.match(/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{2,4})/)){let y=+m[3];if(y<100)y+=2000;return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
-  if(m=norm(s).match(/(\d{1,2})\s*(?:de\s+)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\.?[\s\/\-]*(?:de\s+)?(\d{2,4})/)){let y=+m[3];if(y<100)y+=2000;return y+'-'+String(MABR[m[2]]).padStart(2,'0')+'-'+m[1].padStart(2,'0')}
+  const ns=norm(s);
+  if(m=ns.match(/(\d{1,2})[\s\/\-\.]*(?:de\s+)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\.?(?:[\s\/\-]*(?:de\s+)?(\d{4}|\d{2}))?(?!\d)/)){let y=m[3]?+m[3]:DEFY;if(y<100)y+=2000;return y+'-'+String(MABR[m[2]]).padStart(2,'0')+'-'+m[1].padStart(2,'0')}
+  if(m=ns.match(/(?:^|\D)(\d{1,2})\s*[\/\-]\s*(\d{1,2})\.?\s*$/)){if(+m[1]<=31&&+m[2]<=12)return DEFY+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
   if(/^\d{5}(\.\d+)?$/.test(s)&&+s>40000&&+s<60000){const d=new Date(Date.UTC(1899,11,30)+Math.floor(+s)*864e5);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}
   return null;
 }
@@ -129,6 +132,7 @@ async function discover(){
   return gids;
 }
 async function loadSheet(cfg){
+  DEFY=/^\d{4}$/.test(cfg.name.trim())?+cfg.name.trim():new Date().getFullYear();
   let gid=cfg.gid;
   if(gid==='' ){
     try{const g=await discover();gid=g[norm(cfg.name)]}catch(e){}
@@ -253,7 +257,7 @@ function drawCal(){
   const byDay={};t.recs.filter(r=>r.d&&match(t,r,f,false)).forEach(r=>{(byDay[r.d]=byDay[r.d]||[]).push(r)});
   const reg=[];
   const datas=Object.keys(byDay).sort();
-  const diag=()=>`<div class="err" style="margin-bottom:10px">Sem cargas para os filtros/datas escolhidos.\nLinhas lidas: ${t.recs.length} · com data válida: ${t.recs.filter(r=>r.d).length} · coluna de data usada: "${esc(t.hdr[t.cols.data])}"${datas.length?'\nDatas com cargas: '+fmt(datas[0])+' a '+fmt(datas[datas.length-1]):'\nNenhuma linha tem data reconhecida. Cabeçalhos lidos: '+esc(t.hdr.join(' | '))}</div>${datas.length?'<p><button id="near" style="font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer">Ir para a data com cargas mais próxima</button></p>':''}`;
+  const diag=()=>`<div class="err" style="margin-bottom:10px">Sem cargas para os filtros/datas escolhidos.\nLinhas lidas: ${t.recs.length} · com data válida: ${t.recs.filter(r=>r.d).length} · coluna de data usada: "${esc(t.hdr[t.cols.data])}"\nExemplos de valores nessa coluna: ${esc(t.recs.map(r=>r.v[t.cols.data].trim()).filter(Boolean).slice(0,6).map(x=>'['+x+']').join(' ')||'(coluna vazia)')}${datas.length?'\nDatas com cargas: '+fmt(datas[0])+' a '+fmt(datas[datas.length-1]):'\nNenhuma linha tem data reconhecida. Cabeçalhos lidos: '+esc(t.hdr.join(' | '))}</div>${datas.length?'<p><button id="near" style="font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);cursor:pointer">Ir para a data com cargas mais próxima</button></p>':''}`;
   const dayBlock=k=>{const rs=byDay[k]||[];return`<section class="dayc${k===TODAY?' today':''}"><h3>${esc(fmtL(k).replace(/ de \d{4}$/,''))}<span>${rs.length}</span></h3>`
     +rs.map(r=>{reg.push(r);return cardHTML(t,r,reg.length-1)}).join('')+(rs.length?'':'<small style="color:var(--mut)">Sem cargas</small>')+'</section>'};
   const bindNear=()=>{const b=$('#near');if(b)b.onclick=()=>{f.cur=datas.reduce((x,k)=>Math.abs(toD(k)-toD(TODAY))<Math.abs(toD(x)-toD(TODAY))?k:x,datas[0]);viewCal()}};
