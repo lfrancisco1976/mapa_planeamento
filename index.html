@@ -1,655 +1,281 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapa de Planeamento — Consulta de Serviços</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f4f6f9; color: #1e293b; }
-    h1, h2, h3, .font-display { font-family: 'Rajdhani', sans-serif; }
-    .badge-adr { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-    .badge-ok { background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-    .badge-nok { background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa de Planeamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eceff2;--panel:#fff;--ink:#16202a;--mut:#5d6b78;--line:#d6dce2;--bar:#16202a;--acc:#0e6b5c;--accbg:#dff1ed;--pend:#a8510a;--pendbg:#fbeadb}
+@media(prefers-color-scheme:dark){:root{--bg:#10161c;--panel:#1a232c;--ink:#e8edf1;--mut:#97a5b2;--line:#2c3945;--bar:#0b1015;--acc:#4fc3ad;--accbg:#173a34;--pend:#f0a35e;--pendbg:#3b2915}}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 "Public Sans",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--bar);color:#fff;display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:10px 16px}
+header h1{font-size:16px;margin:0;font-weight:600}
+nav{display:flex;gap:4px}
+nav button{background:transparent;color:#c5d0d9;border:0;padding:8px 14px;border-radius:6px;font:inherit;font-weight:500;cursor:pointer}
+nav button[aria-selected=true]{background:#fff;color:#16202a}
+.upd{margin-left:auto;font-size:12px;color:#9fb0be;display:flex;gap:10px;align-items:center}
+.upd button{background:#2b3a47;color:#fff;border:0;border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer}
+main{max-width:1400px;margin:0 auto;padding:14px}
+.bar{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px}
+.bar label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:3px}
+.bar select,.bar input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:140px}
+.bar button,.nv button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 12px;cursor:pointer}
+.bar button:hover,.nv button:hover{border-color:var(--acc)}
+.cnt{font-size:13px;color:var(--mut);margin:0 0 8px}
+.tw{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:calc(100vh - 220px)}
+table{border-collapse:collapse;width:100%}
+th{position:sticky;top:0;background:var(--panel);text-align:left;font-weight:600;padding:9px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr{cursor:pointer}tbody tr:hover{background:var(--accbg)}
+.nv{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.nv h2{margin:0 8px;font-size:17px;font-weight:600;min-width:240px;text-align:center}
+.seg{margin-left:auto;display:flex}
+.seg button{border-radius:0}.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
+.seg button[aria-pressed=true]{background:var(--acc);color:#fff;border-color:var(--acc)}
+.days{display:grid;gap:10px}
+.days.w{grid-template-columns:repeat(7,minmax(0,1fr))}
+.dayc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:80px}
+.dayc.today{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.dayc h3{margin:0 0 8px;font-size:13px;display:flex;justify-content:space-between;gap:6px}
+.dayc h3 span{background:var(--accbg);color:var(--acc);border-radius:10px;padding:0 8px;font-weight:600}
+.card{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:6px;padding:7px 9px;margin-bottom:6px;cursor:pointer}
+.card:hover{border-color:var(--acc)}
+.card.p{border-left-color:var(--pend)}
+.card b{display:block}
+.card small{display:block;color:var(--mut)}
+.empty,.err{background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:24px;text-align:center;color:var(--mut)}
+.err{border-color:var(--pend);color:var(--ink);text-align:left;white-space:pre-wrap}
+dialog{border:1px solid var(--line);border-radius:10px;padding:0;width:min(560px,94vw);background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(10,16,22,.55)}
+dialog h2{margin:0;padding:14px 16px;font-size:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+dialog h2 button{border:0;background:none;color:var(--ink);font-size:20px;cursor:pointer;line-height:1}
+dl{margin:0;padding:8px 16px 16px;max-height:70vh;overflow:auto;display:grid;grid-template-columns:minmax(110px,35%) 1fr;gap:6px 14px}
+dt{color:var(--mut);font-size:12.5px}dd{margin:0;word-break:break-word}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media(max-width:900px){.days.w{grid-template-columns:1fr}.nv h2{min-width:0;flex:1 1 100%;order:-1;text-align:left;margin:0}.seg{margin-left:0}}
+</style>
 </head>
-<body class="min-h-screen flex flex-col">
-
-  <!-- Cabeçalho -->
-  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="bg-emerald-500/20 border border-emerald-500/40 p-2 rounded-lg text-emerald-400">
-          <i data-lucide="truck" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <h1 class="text-xl font-bold tracking-wide uppercase leading-tight">Mapa de Planeamento</h1>
-          <p class="text-xs text-slate-400" id="last-sync">A sincronizar dados...</p>
-        </div>
-      </div>
-
-      <!-- Navegação de Abas -->
-      <nav class="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
-        <button id="tab-2026" onclick="switchView('2026')"
-          class="px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 bg-emerald-600 text-white shadow">
-          <i data-lucide="calendar-days" class="w-4 h-4"></i>
-          Serviços Planeados (2026)
-        </button>
-        <button id="tab-pendentes" onclick="switchView('pendentes')"
-          class="px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 text-slate-300 hover:text-white">
-          <i data-lucide="clock" class="w-4 h-4"></i>
-          Serviços Pendentes
-          <span id="badge-pendentes-count" class="bg-slate-700 text-xs px-1.5 py-0.5 rounded-full">0</span>
-        </button>
-      </nav>
-
-      <button onclick="loadAllData()" title="Atualizar dados"
-        class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition">
-        <i data-lucide="refresh-cw" class="w-4 h-4" id="refresh-icon"></i>
-        <span class="hidden sm:inline">Atualizar</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- Barra de Filtros -->
-  <section class="bg-white border-b border-slate-200 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 py-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-        <!-- Pesquisa Livre -->
-        <div class="lg:col-span-2">
-          <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Pesquisa Rápida (NEI, Local, LER, Destino)</label>
-          <div class="relative">
-            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
-            <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Ex: NEI260..., Sines, SISAV..."
-              class="w-full pl-9 pr-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-          </div>
-        </div>
-
-        <!-- Filtro Cliente -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Cliente</label>
-          <select id="filter-cliente" onchange="applyFilters()"
-            class="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
-            <option value="">Todos os Clientes</option>
-          </select>
-        </div>
-
-        <!-- Filtro Tipo de Viatura -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Tipo Viatura</label>
-          <select id="filter-viatura" onchange="applyFilters()"
-            class="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
-            <option value="">Todas as Viaturas</option>
-          </select>
-        </div>
-
-        <!-- Filtro Transportador -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Transportador</label>
-          <select id="filter-transportador" onchange="applyFilters()"
-            class="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
-            <option value="">Todos os Transportadores</option>
-          </select>
-        </div>
-
-        <!-- Botão Limpar -->
-        <div class="flex items-end">
-          <button onclick="resetFilters()"
-            class="w-full py-1.5 px-3 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center justify-center gap-1.5">
-            <i data-lucide="x-circle" class="w-4 h-4"></i>
-            Limpar Filtros
-          </button>
-        </div>
-      </div>
-
-      <!-- Barra de Navegação Diária (Específica para Planeados) e Intervalo -->
-      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-        <div id="calendar-nav-bar" class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-semibold text-slate-500 uppercase flex items-center gap-1 mr-1">
-            <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Dia:
-          </span>
-          <button onclick="changeSelectedDay(-1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium flex items-center gap-1">
-            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i> Anterior
-          </button>
-          <button onclick="goToToday()" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold">
-            Hoje
-          </button>
-          <button onclick="changeSelectedDay(1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium flex items-center gap-1">
-            Seguinte <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-          </button>
-          <input type="date" id="single-day-picker" onchange="pickSpecificDay(this.value)"
-            class="px-2 py-1 text-xs border border-slate-300 rounded bg-slate-50 ml-2" />
-          <button onclick="clearDayFilter()" class="text-xs text-emerald-600 hover:underline font-medium ml-2">Ver Ano Todo</button>
-        </div>
-
-        <div class="text-xs font-medium text-slate-600 ml-auto" id="results-counter">
-          A carregar registos...
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Conteúdo Principal -->
-  <main class="max-w-7xl w-full mx-auto px-4 py-6 flex-1 space-y-6">
-
-    <!-- Loader -->
-    <div id="loader" class="flex flex-col items-center justify-center py-20 text-slate-500">
-      <div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-      <p class="text-sm font-medium">A obter dados isolados das folhas do Google Sheets...</p>
-    </div>
-
-    <!-- Erro -->
-    <div id="error-box" class="hidden bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-6">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> Erro ao carregar dados</p>
-      <p class="text-sm mt-1" id="error-message"></p>
-    </div>
-
-    <!-- CARTÕES DE RESUMO ESTATÍSTICO -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-        <div>
-          <div class="text-xs font-semibold text-slate-400 uppercase" id="stat-title-1">Serviços Planeados</div>
-          <div class="text-2xl font-bold font-display text-slate-900 mt-0.5" id="stat-val-1">0</div>
-        </div>
-        <div class="p-3 bg-slate-100 rounded-lg text-slate-600"><i data-lucide="layers" class="w-6 h-6"></i></div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-        <div>
-          <div class="text-xs font-semibold text-slate-400 uppercase">Transporte ADR</div>
-          <div class="text-2xl font-bold font-display text-red-600 mt-0.5" id="stat-val-adr">0</div>
-        </div>
-        <div class="p-3 bg-red-50 text-red-600 rounded-lg"><i data-lucide="alert-octagon" class="w-6 h-6"></i></div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-        <div>
-          <div class="text-xs font-semibold text-slate-400 uppercase">Tipos de Viatura Ativos</div>
-          <div class="text-2xl font-bold font-display text-emerald-600 mt-0.5" id="stat-val-viaturas">0</div>
-        </div>
-        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><i data-lucide="truck" class="w-6 h-6"></i></div>
-      </div>
-    </div>
-
-    <!-- VISTA 1: SERVIÇOS PLANEADOS (2026) -->
-    <div id="view-2026" class="hidden space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase">
-                <th class="py-3 px-4">Data Carga</th>
-                <th class="py-3 px-4">Cliente / Localidade</th>
-                <th class="py-3 px-4">Tipo Viatura</th>
-                <th class="py-3 px-4">Transportador</th>
-                <th class="py-3 px-4">NEI EGEO</th>
-                <th class="py-3 px-4">Destino</th>
-                <th class="py-3 px-4 text-center">ADR</th>
-                <th class="py-3 px-4 text-right">Detalhes</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-2026" class="divide-y divide-slate-100 text-sm"></tbody>
-          </table>
-        </div>
-        <div id="empty-2026" class="hidden py-12 text-center text-slate-400">
-          <i data-lucide="calendar-off" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
-          <p class="text-sm font-medium">Nenhum serviço planeado encontrado para os critérios selecionados.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- VISTA 2: SERVIÇOS PENDENTES -->
-    <div id="view-pendentes" class="hidden space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase">
-                <th class="py-3 px-4">Data Carga</th>
-                <th class="py-3 px-4">Cliente / Localidade</th>
-                <th class="py-3 px-4">Tipo Viatura</th>
-                <th class="py-3 px-4">Transportador</th>
-                <th class="py-3 px-4">NEI EGEO</th>
-                <th class="py-3 px-4">Destino</th>
-                <th class="py-3 px-4">Estado / Validação</th>
-                <th class="py-3 px-4 text-right">Detalhes</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-pendentes" class="divide-y divide-slate-100 text-sm"></tbody>
-          </table>
-        </div>
-        <div id="empty-pendentes" class="hidden py-12 text-center text-slate-400">
-          <i data-lucide="check-circle-2" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
-          <p class="text-sm font-medium">Sem serviços pendentes para os filtros aplicados.</p>
-        </div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- Modal de Detalhes -->
-  <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4" onclick="closeModal(event)">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
-      <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
-        <div>
-          <span id="modal-source-badge" class="text-[11px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold"></span>
-          <h2 id="modal-title" class="text-xl font-bold font-display mt-1">Detalhes do Serviço</h2>
-        </div>
-        <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg transition">
-          <i data-lucide="x" class="w-6 h-6"></i>
-        </button>
-      </div>
-
-      <div id="modal-body" class="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm"></div>
-
-      <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end">
-        <button onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition">
-          Fechar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const BASE_PUB_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSo6rJizYl89_uc7kqJkKovy_-j5uMDE60JSjzgFB9kyIxViVtKVBb6MOv-MGkBvxS4HgxmMMbRCDes/pub?output=csv";
-    const URL_PENDENTES = `${BASE_PUB_URL}&sheet=${encodeURIComponent("Serv. pendentes")}`;
-    const URL_2026 = `${BASE_PUB_URL}&sheet=${encodeURIComponent("2026")}`;
-
-    let dataPendentes = [];
-    let data2026 = [];
-    let currentView = "2026";
-    let selectedDateISO = getTodayISO(); // Por definição, dia de hoje
-    let isDayFilterActive = true; // Por definição ativo na vista planeados
-
-    const MONTHS_PT = {
-      'jan': 0, 'fev': 1, 'mar': 2, 'abr': 3, 'mai': 4, 'jun': 5,
-      'jul': 6, 'ago': 7, 'set': 8, 'out': 9, 'nov': 10, 'dez': 11
-    };
-
-    function getTodayISO() {
-      const now = new Date();
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-
-    function parseSheetDateToISO(rawDate, defaultYear = 2026) {
-      if (!rawDate) return null;
-      const clean = String(rawDate).trim().toLowerCase().replace(/\.$/, '');
-      if (!clean) return null;
-
-      if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
-
-      const dmy = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-      if (dmy) {
-        const day = dmy[1].padStart(2, '0');
-        const month = dmy[2].padStart(2, '0');
-        const year = dmy[3].length === 2 ? `20${dmy[3]}` : dmy[3];
-        return `${year}-${month}-${day}`;
-      }
-
-      const dmText = clean.match(/^(\d{1,2})[\/\-]([a-zç]{3})/);
-      if (dmText && MONTHS_PT.hasOwnProperty(dmText[2])) {
-        const day = dmText[1].padStart(2, '0');
-        const month = String(MONTHS_PT[dmText[2]] + 1).padStart(2, '0');
-        return `${defaultYear}-${month}-${day}`;
-      }
-
-      return null;
-    }
-
-    function fetchCSV(url) {
-      return new Promise((resolve, reject) => {
-        Papa.parse(url, {
-          download: true,
-          skipEmptyLines: true,
-          complete: (results) => resolve(results.data),
-          error: (err) => reject(err)
-        });
-      });
-    }
-
-    async function loadAllData() {
-      const icon = document.getElementById('refresh-icon');
-      icon.classList.add('animate-spin');
-      document.getElementById('error-box').classList.add('hidden');
-
-      try {
-        const [rawPend, raw2026] = await Promise.all([
-          fetchCSV(URL_PENDENTES),
-          fetchCSV(URL_2026)
-        ]);
-
-        const headerIdxPend = rawPend.findIndex(r => r.some(c => c && c.trim().toLowerCase() === 'cliente'));
-        dataPendentes = rowsToObjects(rawPend, headerIdxPend >= 0 ? headerIdxPend : 1);
-
-        const headerIdx2026 = raw2026.findIndex(r => r.some(c => c && c.trim().toLowerCase() === 'cliente'));
-        data2026 = rowsToObjects(raw2026, headerIdx2026 >= 0 ? headerIdx2026 : 0);
-
-        document.getElementById('badge-pendentes-count').textContent = dataPendentes.length;
-        document.getElementById('last-sync').textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
-
-        document.getElementById('single-day-picker').value = selectedDateISO;
-        populateFilterDropdowns();
-        applyFilters();
-
-        document.getElementById('loader').classList.add('hidden');
-        switchView(currentView);
-      } catch (err) {
-        console.error(err);
-        document.getElementById('loader').classList.add('hidden');
-        document.getElementById('error-box').classList.remove('hidden');
-        document.getElementById('error-message').textContent = "Erro ao carregar as folhas do Google Sheets. Confirme se o link público está ativo.";
-      } finally {
-        icon.classList.remove('animate-spin');
-      }
-    }
-
-    function rowsToObjects(rows, headerIndex) {
-      if (!rows || rows.length <= headerIndex) return [];
-      const headers = rows[headerIndex].map((h, i) => (h && h.trim() ? h.trim() : `Coluna_${i + 1}`));
-      const items = [];
-
-      for (let i = headerIndex + 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.every(cell => !cell || !cell.trim())) continue;
-
-        const obj = { _raw: {} };
-        headers.forEach((h, colIdx) => {
-          const val = (row[colIdx] || "").trim();
-          obj[h] = val;
-          obj._raw[h] = val;
-        });
-
-        if (!obj['Cliente'] && !obj['NEI EGEO']) continue;
-
-        obj._isoCarga = parseSheetDateToISO(obj['Data carga'], 2026);
-        items.push(obj);
-      }
-      return items;
-    }
-
-    function populateFilterDropdowns() {
-      const sourceList = (currentView === '2026') ? data2026 : dataPendentes;
-      fillSelect('filter-cliente', sourceList.map(r => r['Cliente']));
-      fillSelect('filter-viatura', sourceList.map(r => r['Tipo viatura']));
-      fillSelect('filter-transportador', sourceList.map(r => r['Transportador']));
-    }
-
-    function fillSelect(selectId, values) {
-      const select = document.getElementById(selectId);
-      const currentVal = select.value;
-      const uniqueSorted = [...new Set(values.map(v => (v || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt'));
-
-      const firstOption = select.options[0].outerHTML;
-      select.innerHTML = firstOption + uniqueSorted.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
-      if (uniqueSorted.includes(currentVal)) select.value = currentVal;
-    }
-
-    function switchView(view) {
-      currentView = view;
-      const tab2026 = document.getElementById('tab-2026');
-      const tabPend = document.getElementById('tab-pendentes');
-      const view2026 = document.getElementById('view-2026');
-      const viewPend = document.getElementById('view-pendentes');
-      const calendarNavBar = document.getElementById('calendar-nav-bar');
-
-      if (view === '2026') {
-        tab2026.className = "px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 bg-emerald-600 text-white shadow";
-        tabPend.className = "px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 text-slate-300 hover:text-white";
-        view2026.classList.remove('hidden');
-        viewPend.classList.add('hidden');
-        calendarNavBar.classList.remove('hidden');
-        document.getElementById('stat-title-1').textContent = "Serviços Planeados";
-      } else {
-        tabPend.className = "px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 bg-emerald-600 text-white shadow";
-        tab2026.className = "px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 text-slate-300 hover:text-white";
-        viewPend.classList.remove('hidden');
-        view2026.classList.add('hidden');
-        calendarNavBar.classList.add('hidden');
-        document.getElementById('stat-title-1').textContent = "Serviços Pendentes";
-      }
-
-      populateFilterDropdowns();
-      applyFilters();
-    }
-
-    function changeSelectedDay(deltaDays) {
-      const [y, m, d] = selectedDateISO.split('-').map(Number);
-      const dt = new Date(y, m - 1, d + deltaDays);
-      selectedDateISO = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-      document.getElementById('single-day-picker').value = selectedDateISO;
-      isDayFilterActive = true;
-      applyFilters();
-    }
-
-    function goToToday() {
-      selectedDateISO = getTodayISO();
-      document.getElementById('single-day-picker').value = selectedDateISO;
-      isDayFilterActive = true;
-      applyFilters();
-    }
-
-    function pickSpecificDay(isoVal) {
-      if (!isoVal) return;
-      selectedDateISO = isoVal;
-      isDayFilterActive = true;
-      applyFilters();
-    }
-
-    function clearDayFilter() {
-      isDayFilterActive = false;
-      document.getElementById('single-day-picker').value = '';
-      applyFilters();
-    }
-
-    function resetFilters() {
-      document.getElementById('filter-search').value = '';
-      document.getElementById('filter-cliente').value = '';
-      document.getElementById('filter-viatura').value = '';
-      document.getElementById('filter-transportador').value = '';
-      selectedDateISO = getTodayISO();
-      document.getElementById('single-day-picker').value = selectedDateISO;
-      isDayFilterActive = (currentView === '2026');
-      applyFilters();
-    }
-
-    function applyFilters() {
-      const search = document.getElementById('filter-search').value.trim().toLowerCase();
-      const cliente = document.getElementById('filter-cliente').value;
-      const viatura = document.getElementById('filter-viatura').value;
-      const transportador = document.getElementById('filter-transportador').value;
-
-      const sourceList = (currentView === '2026') ? data2026 : dataPendentes;
-
-      const filtered = sourceList.filter(item => {
-        if (cliente && item['Cliente'] !== cliente) return false;
-        if (viatura && item['Tipo viatura'] !== viatura) return false;
-        if (transportador && item['Transportador'] !== transportador) return false;
-
-        if (search) {
-          const haystack = [
-            item['Cliente'], item['Localidade'], item['NEI EGEO'],
-            item['Transportador'], item['LER'], item['Designação'], item['Destino']
-          ].join(' ').toLowerCase();
-          if (!haystack.includes(search)) return false;
-        }
-
-        // Filtro diário por defeito para a vista 2026
-        if (currentView === '2026' && isDayFilterActive) {
-          if (item._isoCarga !== selectedDateISO) return false;
-        }
-
-        return true;
-      });
-
-      // ORDENAÇÃO RIGOROSA: 1.º por Data de Carga, 2.º por Tipo de Viatura
-      if (currentView === '2026') {
-        filtered.sort((a, b) => {
-          const dateA = a._isoCarga || '9999-12-31';
-          const dateB = b._isoCarga || '9999-12-31';
-          if (dateA !== dateB) return dateA.localeCompare(dateB);
-          
-          const viatA = (a['Tipo viatura'] || '').toLowerCase();
-          const viatB = (b['Tipo viatura'] || '').toLowerCase();
-          return viatA.localeCompare(viatB, 'pt');
-        });
-      }
-
-      updateStats(filtered);
-      document.getElementById('results-counter').textContent = `${filtered.length} serviço(s) encontrado(s)`;
-
-      if (currentView === '2026') {
-        renderTable2026(filtered);
-      } else {
-        renderTablePendentes(filtered);
-      }
-    }
-
-    function updateStats(items) {
-      const total = items.length;
-      const adrCount = items.filter(i => (i['TRANSPORTE ADR'] || '').toUpperCase() === 'SIM').length;
-      const viaturasUnicas = new Set(items.map(i => i['Tipo viatura']).filter(Boolean)).size;
-
-      document.getElementById('stat-val-1').textContent = total;
-      document.getElementById('stat-val-adr').textContent = adrCount;
-      document.getElementById('stat-val-viaturas').textContent = viaturasUnicas;
-    }
-
-    function renderTable2026(items) {
-      const tbody = document.getElementById('tbody-2026');
-      const empty = document.getElementById('empty-2026');
-
-      if (!items.length) {
-        tbody.innerHTML = '';
-        empty.classList.remove('hidden');
-        return;
-      }
-      empty.classList.add('hidden');
-
-      tbody.innerHTML = items.map(item => {
-        const isAdr = (item['TRANSPORTE ADR'] || '').toUpperCase() === 'SIM';
-        return `
-          <tr onclick='openModal(${JSON.stringify(item).replace(/'/g, "&#39;")}, "Serviço Planeado (2026)")'
-              class="hover:bg-emerald-50/60 cursor-pointer transition">
-            <td class="py-3 px-4 whitespace-nowrap font-medium text-slate-700">${escapeHtml(item['Data carga'] || '-')}</td>
-            <td class="py-3 px-4">
-              <div class="font-semibold text-slate-900">${escapeHtml(item['Cliente'] || '-')}</div>
-              <div class="text-xs text-slate-500">${escapeHtml(item['Localidade'] || '')}</div>
-            </td>
-            <td class="py-3 px-4 whitespace-nowrap">
-              <span class="px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700 rounded-md border border-slate-200">
-                ${escapeHtml(item['Tipo viatura'] || '-')}
-              </span>
-            </td>
-            <td class="py-3 px-4 text-slate-700">${escapeHtml(item['Transportador'] || 'Por atribuir')}</td>
-            <td class="py-3 px-4 whitespace-nowrap font-mono text-xs text-slate-600">${escapeHtml(item['NEI EGEO'] || '-')}</td>
-            <td class="py-3 px-4 text-slate-700">${escapeHtml(item['Destino'] || '-')}</td>
-            <td class="py-3 px-4 text-center">
-              ${isAdr ? '<span class="badge-adr text-[11px] font-bold px-2 py-0.5 rounded">ADR</span>' : '<span class="text-xs text-slate-400">Não</span>'}
-            </td>
-            <td class="py-3 px-4 text-right">
-              <button class="text-emerald-600 hover:text-emerald-800 font-medium text-xs inline-flex items-center gap-1">
-                Ver <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-      lucide.createIcons();
-    }
-
-    function renderTablePendentes(items) {
-      const tbody = document.getElementById('tbody-pendentes');
-      const empty = document.getElementById('empty-pendentes');
-
-      if (!items.length) {
-        tbody.innerHTML = '';
-        empty.classList.remove('hidden');
-        return;
-      }
-      empty.classList.add('hidden');
-
-      tbody.innerHTML = items.map(item => {
-        const validacao = (item['DATAS VALIDADAS'] || '').trim();
-        const estado = (item['ESTADO'] || '').trim();
-        let badgeHtml = '';
-        if (validacao.includes('VALIDADA')) {
-          badgeHtml = `<span class="badge-ok text-[11px] font-semibold px-2 py-0.5 rounded">${escapeHtml(validacao)}</span>`;
-        } else if (validacao.includes('NOK')) {
-          badgeHtml = `<span class="badge-nok text-[11px] font-semibold px-2 py-0.5 rounded">${escapeHtml(validacao)}</span>`;
-        } else if (estado) {
-          badgeHtml = `<span class="bg-slate-100 text-slate-700 text-[11px] font-medium px-2 py-0.5 rounded">${escapeHtml(estado)}</span>`;
-        }
-
-        return `
-          <tr onclick='openModal(${JSON.stringify(item).replace(/'/g, "&#39;")}, "Serviços Pendentes")'
-              class="hover:bg-amber-50/50 cursor-pointer transition">
-            <td class="py-3 px-4 whitespace-nowrap font-medium text-slate-700">
-              ${escapeHtml(item['Data carga'] || 'Sem data')}
-            </td>
-            <td class="py-3 px-4">
-              <div class="font-semibold text-slate-900">${escapeHtml(item['Cliente'] || '-')}</div>
-              <div class="text-xs text-slate-500">${escapeHtml(item['Localidade'] || '')}</div>
-            </td>
-            <td class="py-3 px-4 whitespace-nowrap">
-              <span class="px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700 rounded-md border border-slate-200">
-                ${escapeHtml(item['Tipo viatura'] || '-')}
-              </span>
-            </td>
-            <td class="py-3 px-4 text-slate-700">${escapeHtml(item['Transportador'] || 'Por atribuir')}</td>
-            <td class="py-3 px-4 whitespace-nowrap font-mono text-xs text-slate-600">${escapeHtml(item['NEI EGEO'] || '-')}</td>
-            <td class="py-3 px-4 text-slate-700">${escapeHtml(item['Destino'] || '-')}</td>
-            <td class="py-3 px-4 whitespace-nowrap">${badgeHtml || '<span class="text-xs text-slate-400">-</span>'}</td>
-            <td class="py-3 px-4 text-right">
-              <button class="text-emerald-600 hover:text-emerald-800 font-medium text-xs inline-flex items-center gap-1">
-                Ver <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-      lucide.createIcons();
-    }
-
-    function openModal(item, sourceLabel) {
-      document.getElementById('modal-source-badge').textContent = sourceLabel;
-      document.getElementById('modal-title').textContent = `${item['Cliente'] || 'Serviço'} — ${item['NEI EGEO'] || ''}`;
-
-      const body = document.getElementById('modal-body');
-      const entries = Object.entries(item._raw || {}).filter(([key]) => !key.startsWith('Coluna_'));
-
-      body.innerHTML = entries.map(([key, val]) => `
-        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/80">
-          <div class="text-[11px] font-semibold uppercase text-slate-400">${escapeHtml(key)}</div>
-          <div class="text-sm font-medium text-slate-800 mt-0.5 break-words">${val ? escapeHtml(val) : '<span class="text-slate-400 italic">Vazio</span>'}</div>
-        </div>
-      `).join('');
-
-      document.getElementById('detail-modal').classList.remove('hidden');
-      lucide.createIcons();
-    }
-
-    function closeModal() {
-      document.getElementById('detail-modal').classList.add('hidden');
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
-    });
-
-    lucide.createIcons();
-    loadAllData();
-  </script>
+<body>
+<header>
+  <h1>Mapa de Planeamento</h1>
+  <nav role="tablist">
+    <button role="tab" id="t-pend" aria-selected="true">Serviços pendentes</button>
+    <button role="tab" id="t-cal" aria-selected="false">Planeamento 2026</button>
+  </nav>
+  <div class="upd"><span id="upd">A carregar…</span><button id="reload">Atualizar</button></div>
+</header>
+<main id="app"></main>
+<dialog id="dlg"><h2><span id="dt"></span><button id="dx" aria-label="Fechar">×</button></h2><dl id="dl"></dl></dialog>
+
+<script>
+/* ===== CONFIGURAÇÃO =====
+   KEY: parte 2PACX-... do link publicado.
+   gid: número da folha (aparece no URL ao abrir a folha: ...#gid=123456789).
+   Se gid ficar vazio, a app tenta descobri-lo pelo nome da folha. */
+const CONFIG={
+  KEY:'2PACX-1vSo6rJizYl89_uc7kqJkKovy_-j5uMDE60JSjzgFB9kyIxViVtKVBb6MOv-MGkBvxS4HgxmMMbRCDes',
+  pend:{name:'Serv. Pendentes',gid:''},
+  plan:{name:'2026',gid:''}
+};
+const BASE='https://docs.google.com/spreadsheets/d/e/'+CONFIG.KEY;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const WD=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+const MS=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+/* ---------- datas (chaves ISO AAAA-MM-DD) ---------- */
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const toD=k=>{const[a,b,c]=k.split('-').map(Number);return new Date(a,b-1,c)};
+const addDays=(k,n)=>{const d=toD(k);d.setDate(d.getDate()+n);return iso(d)};
+const mondayOf=k=>{const d=toD(k);d.setDate(d.getDate()-((d.getDay()+6)%7));return iso(d)};
+const fmt=k=>{if(!k)return'';const d=toD(k);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()};
+const fmtL=k=>{const d=toD(k);return WD[d.getDay()]+', '+d.getDate()+' de '+MS[d.getMonth()]+' de '+d.getFullYear()};
+function parseDate(s){
+  s=String(s||'').trim();let m;
+  if(m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/))return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  if(m=s.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/)){let y=+m[3];if(y<100)y+=2000;return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
+  return null;
+}
+const TODAY=iso(new Date());
+
+/* ---------- CSV ---------- */
+function parseCSV(t){
+  const rows=[];let r=[],c='',q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}
+    else if(ch=='"')q=true;
+    else if(ch==','){r.push(c);c=''}
+    else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;r.push(c);rows.push(r);r=[];c=''}
+    else c+=ch}
+  if(c!==''||r.length){r.push(c);rows.push(r)}
+  return rows;
+}
+
+/* ---------- carregar folhas ---------- */
+let gids=null;
+async function discover(){
+  if(gids)return gids;gids={};
+  const t=await (await fetch(BASE+'/pubhtml')).text();
+  const re=/name:\s*"((?:[^"\\]|\\.)*)"[^}]*?gid:\s*"(\d+)"/g;let m;
+  while(m=re.exec(t))gids[norm(m[1])]=m[2];
+  return gids;
+}
+async function loadSheet(cfg){
+  let gid=cfg.gid;
+  if(gid==='' ){
+    try{const g=await discover();gid=g[norm(cfg.name)]}catch(e){}
+    if(gid===undefined||gid==='')throw new Error('Não foi possível descobrir o gid da folha "'+cfg.name+'".\nAbra o link publicado, clique no separador da folha e copie o número a seguir a "gid=" para CONFIG no index.html.');
+  }
+  const res=await fetch(BASE+'/pub?output=csv&gid='+gid+'&t='+Date.now());
+  if(!res.ok)throw new Error('Erro '+res.status+' ao ler a folha "'+cfg.name+'".');
+  return buildTable(parseCSV(await res.text()));
+}
+function buildTable(raw){
+  raw=raw.filter(r=>r.some(c=>c.trim()));
+  let hi=0,best=0;
+  raw.slice(0,15).forEach((r,i)=>{const n=r.filter(c=>c.trim()).length;if(n>best){best=n;hi=i}});
+  const hdr=(raw[hi]||[]).map((h,i)=>h.trim()||'Col. '+(i+1));
+  const find=(...res)=>{for(const re of res){const i=hdr.findIndex(h=>re.test(norm(h)));if(i>=0)return i}return -1};
+  const cols={
+    cliente:find(/cliente/),
+    viatura:find(/tipo.*(viatura|veiculo)/,/viatura/,/veiculo/,/semi/),
+    transp:find(/transportador/,/transporte/,/transp/),
+    data:find(/data.*carga/,/carga.*data/,/^data/,/data/)
+  };
+  const rows=raw.slice(hi+1).map(v=>{while(v.length<hdr.length)v.push('');return v}).filter(v=>v.some(c=>c.trim()));
+  if(cols.data<0){ // procurar coluna cujos valores sejam datas
+    for(let i=0;i<hdr.length;i++){const s=rows.slice(0,30).filter(v=>v[i]);if(s.length&&s.filter(v=>parseDate(v[i])).length/s.length>.6){cols.data=i;break}}
+  }
+  const recs=rows.map(v=>({v,d:cols.data>=0?parseDate(v[cols.data]):null}));
+  // colunas do resumo: as encontradas + as primeiras com conteúdo
+  const sum=[cols.data,cols.cliente,cols.viatura,cols.transp].filter(i=>i>=0);
+  for(let i=0;i<hdr.length&&sum.length<6;i++)if(!sum.includes(i)&&recs.some(r=>r.v[i].trim()))sum.push(i);
+  return{hdr,cols,recs,sum};
+}
+
+/* ---------- estado ---------- */
+const T={};const S={view:'pend',pend:{from:'',to:'',cliente:'',viatura:'',transp:'',q:''},cal:{cur:TODAY,mode:'dia',from:'',to:'',cliente:'',viatura:'',transp:''}};
+
+const uniq=(t,i)=>i<0?[]:[...new Set(t.recs.map(r=>r.v[i].trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt'));
+const sel=(id,lab,opts,val)=>`<label>${lab}<select id="${id}"><option value="">Todos</option>${opts.map(o=>`<option${o===val?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
+function match(t,r,f,useDates){
+  const c=t.cols;
+  if(f.cliente&&r.v[c.cliente]?.trim()!==f.cliente)return false;
+  if(f.viatura&&r.v[c.viatura]?.trim()!==f.viatura)return false;
+  if(f.transp&&r.v[c.transp]?.trim()!==f.transp)return false;
+  if(useDates){if(f.from&&(!r.d||r.d<f.from))return false;if(f.to&&(!r.d||r.d>f.to))return false}
+  if(f.q&&!r.v.join(' ').toLowerCase().includes(f.q.toLowerCase()))return false;
+  return true;
+}
+function filtersHTML(key,t,withQ,withDates){
+  const f=S[key],c=t.cols;
+  return`<div class="bar">${withDates?`<label>Data de<input type="date" id="f-from" value="${f.from}"></label><label>Data até<input type="date" id="f-to" value="${f.to}"></label>`:''}`
+   +(c.cliente>=0?sel('f-cliente','Cliente',uniq(t,c.cliente),f.cliente):'')
+   +(c.viatura>=0?sel('f-viatura','Tipo de viatura',uniq(t,c.viatura),f.viatura):'')
+   +(c.transp>=0?sel('f-transp','Transportador',uniq(t,c.transp),f.transp):'')
+   +(withQ?`<label>Pesquisa<input type="search" id="f-q" value="${esc(f.q)}" placeholder="texto livre"></label>`:'')
+   +`<button id="f-clr">Limpar</button></div>`;
+}
+function bindFilters(key,rerender){
+  const f=S[key];
+  [['from','f-from'],['to','f-to'],['cliente','f-cliente'],['viatura','f-viatura'],['transp','f-transp']].forEach(([k,id])=>{
+    const el=$('#'+id);if(el)el.onchange=()=>{f[k]=el.value;rerender()}});
+  const q=$('#f-q');if(q)q.oninput=()=>{f.q=q.value;rerender(true)};
+  $('#f-clr').onclick=()=>{Object.keys(f).forEach(k=>{if(!['cur','mode'].includes(k))f[k]=''});rerender()};
+}
+
+/* ---------- pop-up ---------- */
+function openDlg(t,r){
+  const c=t.cols;
+  $('#dt').textContent=[r.d?fmt(r.d):'',c.cliente>=0?r.v[c.cliente]:''].filter(Boolean).join(' · ')||'Detalhe';
+  $('#dl').innerHTML=t.hdr.map((h,i)=>r.v[i].trim()?`<dt>${esc(h)}</dt><dd>${esc(r.v[i])}</dd>`:'').join('');
+  $('#dlg').showModal();
+}
+$('#dx').onclick=()=>$('#dlg').close();
+$('#dlg').addEventListener('click',e=>{if(e.target.id==='dlg')e.target.close()});
+
+/* ---------- vista: pendentes ---------- */
+function viewPend(){
+  const t=T.pend;
+  $('#app').innerHTML=filtersHTML('pend',t,true,t.cols.data>=0)+'<div id="out"></div>';
+  bindFilters('pend',keep=>{keep?drawPend():viewPend()});
+  drawPend();
+}
+function drawPend(){
+  const t=T.pend,f=S.pend;
+  const rows=t.recs.filter(r=>match(t,r,f,true)).sort((a,b)=>(a.d||'9').localeCompare(b.d||'9'));
+  window._rows=rows;
+  $('#out').innerHTML=`<p class="cnt">${rows.length} de ${t.recs.length} serviços pendentes</p>`+(rows.length?
+   `<div class="tw"><table><thead><tr>${t.sum.map(i=>`<th>${esc(t.hdr[i])}</th>`).join('')}</tr></thead><tbody>`
+   +rows.map((r,n)=>`<tr data-n="${n}">${t.sum.map(i=>`<td>${esc(i===t.cols.data&&r.d?fmt(r.d):r.v[i])}</td>`).join('')}</tr>`).join('')
+   +'</tbody></table></div>':'<div class="empty">Sem serviços para os filtros escolhidos.</div>');
+  document.querySelectorAll('tbody tr').forEach(tr=>tr.onclick=()=>openDlg(t,rows[+tr.dataset.n]));
+}
+
+/* ---------- vista: calendário ---------- */
+function cardHTML(t,r,n,pend){
+  const c=t.cols,main=c.cliente>=0?r.v[c.cliente]:r.v[t.sum[0]];
+  const l1=[c.viatura,c.transp].filter(i=>i>=0).map(i=>r.v[i].trim()).filter(Boolean).join(' · ');
+  const extra=t.sum.filter(i=>![c.data,c.cliente,c.viatura,c.transp].includes(i)).slice(0,2)
+    .map(i=>r.v[i].trim()?`${esc(t.hdr[i])}: ${esc(r.v[i])}`:'').filter(Boolean).join(' · ');
+  return`<button class="card${pend?' p':''}" data-n="${n}"><b>${esc(main||'(sem cliente)')}</b>${l1?`<small>${esc(l1)}</small>`:''}${extra?`<small>${extra}</small>`:''}</button>`;
+}
+function viewCal(){
+  const t=T.plan,f=S.cal;
+  $('#app').innerHTML=`<div class="nv"><button id="pv" aria-label="Anterior">◀ Anterior</button><button id="td">Hoje</button><button id="nx" aria-label="Seguinte">Seguinte ▶</button>
+   <input type="date" id="dp" value="${f.cur}" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit">
+   <h2 id="ttl"></h2><div class="seg">${[['dia','Dia'],['semana','Semana'],['lista','Intervalo']].map(([k,l])=>`<button data-m="${k}" aria-pressed="${f.mode===k}">${l}</button>`).join('')}</div></div>`
+   +filtersHTML('cal',t,false,f.mode==='lista')+'<div id="out"></div>';
+  const step=f.mode==='semana'?7:1;
+  $('#pv').onclick=()=>{f.cur=addDays(f.cur,-step);viewCal()};
+  $('#nx').onclick=()=>{f.cur=addDays(f.cur,step);viewCal()};
+  $('#td').onclick=()=>{f.cur=TODAY;viewCal()};
+  $('#dp').onchange=e=>{if(e.target.value){f.cur=e.target.value;viewCal()}};
+  document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{f.mode=b.dataset.m;viewCal()});
+  bindFilters('cal',()=>viewCal());
+  drawCal();
+}
+function drawCal(){
+  const t=T.plan,f=S.cal,out=$('#out');
+  if(t.cols.data<0){out.innerHTML='<div class="err">Não foi encontrada uma coluna de data de carga na folha "'+esc(CONFIG.plan.name)+'".</div>';return}
+  const byDay={};t.recs.filter(r=>r.d&&match(t,r,f,false)).forEach(r=>{(byDay[r.d]=byDay[r.d]||[]).push(r)});
+  const all=[];const reg=[];
+  const dayBlock=k=>{const rs=byDay[k]||[];return`<section class="dayc${k===TODAY?' today':''}"><h3>${esc(fmtL(k).replace(/ de \d{4}$/,''))}<span>${rs.length}</span></h3>`
+    +rs.map(r=>{reg.push(r);return cardHTML(t,r,reg.length-1)}).join('')+(rs.length?'':'<small style="color:var(--mut)">Sem cargas</small>')+'</section>'};
+  if(f.mode==='dia'){$('#ttl').textContent=fmtL(f.cur);out.innerHTML='<div class="days">'+dayBlock(f.cur)+'</div>'}
+  else if(f.mode==='semana'){const m=mondayOf(f.cur);$('#ttl').textContent='Semana de '+fmt(m)+' a '+fmt(addDays(m,6));
+    out.innerHTML='<div class="days w">'+[0,1,2,3,4,5,6].map(i=>dayBlock(addDays(m,i))).join('')+'</div>'}
+  else{const ks=Object.keys(byDay).filter(k=>(!f.from||k>=f.from)&&(!f.to||k<=f.to)).sort();
+    $('#ttl').textContent=ks.length?ks.length+' dias com cargas':'Intervalo';
+    out.innerHTML=ks.length?'<div class="days">'+ks.map(dayBlock).join('')+'</div>':'<div class="empty">Sem cargas no intervalo escolhido. Defina "Data de" e "Data até".</div>'}
+  out.querySelectorAll('.card').forEach(b=>b.onclick=()=>openDlg(t,reg[+b.dataset.n]));
+}
+
+/* ---------- arranque ---------- */
+function show(v){
+  S.view=v;$('#t-pend').setAttribute('aria-selected',v==='pend');$('#t-cal').setAttribute('aria-selected',v==='cal');
+  if(!T.pend||!T.plan)return;v==='pend'?viewPend():viewCal();
+}
+$('#t-pend').onclick=()=>show('pend');$('#t-cal').onclick=()=>show('cal');
+async function load(){
+  $('#upd').textContent='A carregar…';$('#app').innerHTML='<div class="empty">A ler dados da folha…</div>';
+  try{
+    gids=null;
+    const[a,b]=await Promise.all([loadSheet(CONFIG.pend),loadSheet(CONFIG.plan)]);
+    T.pend=a;T.plan=b;
+    $('#upd').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+    show(S.view);
+  }catch(e){
+    $('#upd').textContent='Erro ao carregar';
+    $('#app').innerHTML='<div class="err">'+esc(e.message)+'</div>';
+  }
+}
+$('#reload').onclick=load;
+load();
+</script>
 </body>
 </html>
